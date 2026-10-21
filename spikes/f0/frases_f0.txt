@@ -1,0 +1,11 @@
+# Una frase por línea. Léelas con tu ritmo normal de dictado, sin actuar.
+Revisa la última figura: la leyenda tapa la curva del modelo y el eje vertical no tiene unidades.
+En el endpoint de sesiones falta validar el payload con Pydantic antes de guardarlo en SQLite.
+Abre un pull request con el fix del overlay y corre los tests antes de hacer el merge.
+El dataset de corrientes del motor tiene mucho ruido; prueba con la transformada wavelet y compara los espectros.
+Pásale este prompt a Claude: resume el paper en pocas viñetas y propón un título más corto.
+El nodo de n8n que llama a LM Studio devuelve un JSON vacío cuando el modelo tarda demasiado.
+Para el video de mañana, el gancho tiene que ser más corto y mostrar el producto desde el inicio.
+Sube un poco el learning rate, reduce el batch size y guarda un checkpoint en cada época.
+Nueva tarea: responder al segundo revisor antes del viernes y actualizar la tabla de resultados.
+El fine-tuning con LoRA mejoró bastante el F1 en el conjunto de validación, pero sigue habiendo overfitting.

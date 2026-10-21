@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1205" viewBox="0 0 1800 1205" font-family="Segoe UI, Inter, Arial, sans-serif">
+  <title>Transcriptor RT — recursos, modos y apagado automático</title>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#52606D"/></marker>
+    <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2563EB"/></marker>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#B91C1C"/></marker>
+    <marker id="av" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7C3AED"/></marker>
+    <pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="8" height="8" fill="#FFEDD5"/><line x1="0" y1="0" x2="0" y2="8" stroke="#FDBA74" stroke-width="4"/>
+    </pattern>
+    <style>
+      text { fill: #1F2933; }
+      .h1 { font-size: 30px; font-weight: 700; }
+      .sub { font-size: 15px; fill: #52606D; }
+      .h2 { font-size: 20px; font-weight: 700; }
+      .b16 { font-size: 16px; font-weight: 700; }
+      .b15 { font-size: 15px; font-weight: 600; }
+      .b14 { font-size: 14px; font-weight: 600; }
+      .s13 { font-size: 13px; fill: #3E4C59; }
+      .s12 { font-size: 12.5px; fill: #52606D; }
+      .m12 { font-size: 12px; fill: #7B8794; }
+      .mono { font-family: Consolas, 'Cascadia Mono', monospace; font-size: 12.5px; fill: #1F2933; }
+      .blue { fill: #1D4ED8; }
+      .red { fill: #B91C1C; }
+      .green { fill: #15803D; }
+      .amber { fill: #B45309; }
+      .w { fill: #FFFFFF; }
+      .panel { fill: #FFFFFF; stroke: #E4E7EB; stroke-width: 1.5; }
+      .chip { fill: #FFFFFF; stroke: #CBD2D9; stroke-width: 1.2; }
+      .rec { fill: #FFF8EB; stroke: #F59E0B; stroke-width: 2.2; }
+      .badge { fill: #F59E0B; }
+      .bt { font-size: 11px; font-weight: 700; fill: #FFFFFF; }
+      .ln { stroke: #52606D; stroke-width: 1.8; fill: none; }
+      .lb { stroke: #2563EB; stroke-width: 2; fill: none; }
+      .lr { stroke: #B91C1C; stroke-width: 1.8; fill: none; stroke-dasharray: 6 5; }
+      .lv { stroke: #7C3AED; stroke-width: 2; fill: none; }
+      .violet { fill: #6D28D9; }
+      .row { stroke: #E4E7EB; stroke-width: 1; }
+    </style>
+  </defs>
+
+  <rect width="1800" height="1205" fill="#F4F6F9"/>
+
+  <!-- ========== Encabezado ========== -->
+  <text x="40" y="52" class="h1">Transcriptor RT — recursos, modos y apagado automático</text>
+  <text x="40" y="80" class="sub">Ruta A elegida · el transcriptor nunca toca la RTX 5090 · usa la 5080 solo si hay espacio · se apaga solo cuando no lo usas</text>
+
+  <!-- ========== 1 · GPUs ========== -->
+  <rect x="20" y="110" width="860" height="500" rx="14" class="panel"/>
+  <text x="40" y="145" class="h2">1 · Quién usa cada GPU</text>
+
+  <rect x="50" y="165" width="800" height="118" rx="10" style="fill:#FEF2F2;stroke:#DC2626;stroke-width:1.5"/>
+  <text x="68" y="194" class="b16 red">RTX 5090 · 32 GB — prohibida para el transcriptor</text>
+  <text x="68" y="220" class="s13">La usan LM Studio y lo demás. El motor de voz ni siquiera la ve, porque arranca con:</text>
+  <text x="68" y="244" class="mono">CUDA_VISIBLE_DEVICES = GPU-xxxxxxxx-…  (UUID de la 5080, no un índice)</text>
+  <text x="68" y="268" class="s12">Probado hoy: con esa variable, CTranslate2 ve una sola GPU y la 5090 no cambió (21 805 MiB antes y después).</text>
+
+  <rect x="50" y="298" width="800" height="200" rx="10" style="fill:#EEF4FF;stroke:#2563EB;stroke-width:1.5"/>
+  <text x="68" y="327" class="b16 blue">RTX 5080 · 16 GB — compartida, se usa solo si hay espacio</text>
+  <rect x="70" y="346" width="57" height="34" style="fill:#CBD2D9"/>
+  <rect x="127" y="346" width="105" height="34" style="fill:#2563EB"/>
+  <text x="179" y="368" text-anchor="middle" class="w" style="font-size:12px;font-weight:600">voz 2,2 GB</text>
+  <rect x="232" y="346" width="290" height="34" style="fill:url(#hatch);stroke:#F97316;stroke-width:1;stroke-dasharray:4 3"/>
+  <text x="377" y="368" text-anchor="middle" style="font-size:12px;font-weight:600;fill:#9A3412">otro proyecto (TTS, a ratos)</text>
+  <rect x="522" y="346" width="308" height="34" style="fill:#F5F7FA;stroke:#CBD2D9;stroke-width:1"/>
+  <text x="600" y="368" text-anchor="middle" class="m12">libre</text>
+  <path d="M688,338 V388" class="lr"/>
+  <text x="70" y="404" class="m12">escritorio 1,2 GB</text>
+  <text x="688" y="404" text-anchor="middle" class="m12 red">umbral: 3 GB libres</text>
+  <text x="68" y="432" class="s13">Otro proyecto local con un TTS también usa esta misma 5080, a ratos.</text>
+  <text x="68" y="455" class="s13">Por eso el transcriptor no reserva memoria: la toma al dictar y la suelta al apagarse.</text>
+  <text x="68" y="478" class="s13">Si al despertar no hay espacio suficiente, usa la CPU sin preguntar (modo Auto).</text>
+
+  <rect x="50" y="513" width="800" height="80" rx="10" style="fill:#F5F7FA;stroke:#9AA5B1;stroke-width:1.5"/>
+  <text x="68" y="541" class="b15">CPU i9-14900K · respaldo sin GPU</text>
+  <text x="68" y="566" class="s13">0 VRAM. Medido: en CPU cada frase tarda ≈ 4–6 s, dure lo que dure.</text>
+  <text x="68" y="584" class="s12">Sirve para el texto final; el texto parcial en vivo necesita la 5080.</text>
+
+  <!-- ========== 2 · Dos procesos ========== -->
+  <rect x="900" y="110" width="880" height="500" rx="14" class="panel"/>
+  <text x="920" y="145" class="h2">2 · Dos procesos: el que escucha y el que transcribe</text>
+
+  <rect x="930" y="165" width="820" height="170" rx="10" style="fill:#EAF7EF;stroke:#16A34A;stroke-width:1.5"/>
+  <text x="948" y="194" class="b16 green">voice-core · supervisor (siempre encendido, liviano)</text>
+  <text x="948" y="220" class="s13">• hotkeys globales, API REST + WebSocket, SQLite y el overlay</text>
+  <text x="948" y="243" class="s13">• nunca carga CUDA: en reposo usa poca RAM y 0 VRAM</text>
+  <text x="948" y="266" class="s13">• abre el micrófono solo al dictar y guarda el audio en un búfer</text>
+  <text x="948" y="289" class="s13">• vigila la VRAM libre de la 5080 con NVML (solo lectura, sin contexto CUDA)</text>
+  <text x="948" y="312" class="s13">• elige el modo, arranca el motor y lo cierra cuando toca</text>
+
+  <path d="M1180,335 V396" class="lb" marker-end="url(#ab)"/>
+  <text x="1192" y="371" class="s12">audio del búfer</text>
+  <path d="M1500,396 V339" class="lb" marker-end="url(#ab)"/>
+  <text x="1512" y="371" class="s12">texto parcial y final</text>
+
+  <rect x="930" y="400" width="820" height="190" rx="10" style="fill:#EEF4FF;stroke:#2563EB;stroke-width:2"/>
+  <text x="948" y="429" class="b16 blue">stt-worker · motor (solo existe mientras lo usas)</text>
+  <text x="948" y="455" class="s13">• proceso hijo con faster-whisper; lo lanza el supervisor</text>
+  <text x="948" y="478" class="s13">• arranca fijado a la 5080 por UUID, o en modo CPU</text>
+  <text x="948" y="501" class="s13">• un solo modelo (large-v3 + tu glosario) para el texto parcial y el final</text>
+  <text x="948" y="524" class="s13">• a los 2 min sin uso pasa el modelo a RAM; para liberar del todo, se cierra el proceso</text>
+  <text x="948" y="558" class="s12">Medido: borrar el modelo sin cerrar el proceso deja ≈ 240 MB ocupados (contexto CUDA).</text>
+  <text x="948" y="577" class="s12">Cerrar el proceso devuelve la 5080 exactamente a como estaba.</text>
+
+  <!-- ========== 3 · Ciclo de vida ========== -->
+  <rect x="20" y="630" width="1760" height="290" rx="14" class="panel"/>
+  <text x="40" y="665" class="h2">3 · Ciclo de vida: se enciende al dictar y se apaga solo</text>
+
+  <rect x="50" y="700" width="300" height="110" rx="12" style="fill:#F5F7FA;stroke:#9AA5B1;stroke-width:1.8"/>
+  <text x="70" y="730" class="b16">APAGADO</text>
+  <text x="70" y="754" class="s13">sin modelo · 0 VRAM</text>
+  <text x="70" y="776" class="s13">micrófono cerrado</text>
+  <text x="70" y="796" class="m12">arranque en frío: 5–11 s</text>
+
+  <rect x="400" y="700" width="300" height="110" rx="12" style="fill:#FFF8EB;stroke:#F59E0B;stroke-width:1.8"/>
+  <text x="420" y="730" class="b16 amber">ARRANCANDO</text>
+  <text x="420" y="754" class="s13">el micrófono ya graba en el búfer</text>
+  <text x="420" y="776" class="s13">en frío ≈ 5 s · desde RAM 0,4 s</text>
+  <text x="420" y="796" class="m12">no se pierde ninguna palabra</text>
+
+  <rect x="750" y="700" width="300" height="110" rx="12" style="fill:#EAF7EF;stroke:#16A34A;stroke-width:1.8"/>
+  <text x="770" y="730" class="b16 green">DICTANDO</text>
+  <text x="770" y="754" class="s13">texto parcial en vivo + final</text>
+  <text x="770" y="776" class="s13">por frases, al detectar pausas</text>
+  <text x="770" y="796" class="m12">panel: punto rojo</text>
+
+  <rect x="1100" y="700" width="300" height="110" rx="12" style="fill:#EEF4FF;stroke:#2563EB;stroke-width:1.8"/>
+  <text x="1120" y="730" class="b16 blue">EN ESPERA</text>
+  <text x="1120" y="754" class="s13">modelo en la 5080 (2,2 GB)</text>
+  <text x="1120" y="776" class="s13">dictar de nuevo: al instante</text>
+  <text x="1120" y="796" class="m12">panel: punto azul</text>
+
+  <rect x="1450" y="700" width="300" height="110" rx="12" style="fill:#F3EEFF;stroke:#7C3AED;stroke-width:1.8"/>
+  <text x="1470" y="730" class="b16 violet">EN REPOSO</text>
+  <text x="1470" y="754" class="s13">modelo en RAM · 5080 ≈ 0,3 GB</text>
+  <text x="1470" y="776" class="s13">despierta en 0,37 s (medido)</text>
+  <text x="1470" y="796" class="m12">panel: punto violeta</text>
+
+  <path d="M350,755 H396" class="ln" marker-end="url(#a)"/>
+  <text x="373" y="745" text-anchor="middle" class="s12">dictar</text>
+  <path d="M700,755 H746" class="ln" marker-end="url(#a)"/>
+  <text x="723" y="745" text-anchor="middle" class="s12">listo</text>
+  <path d="M1050,755 H1096" class="ln" marker-end="url(#a)"/>
+  <text x="1073" y="745" text-anchor="middle" class="s12">fin</text>
+  <path d="M1400,755 H1446" class="ln" marker-end="url(#a)"/>
+  <text x="1423" y="745" text-anchor="middle" class="s12">2 min</text>
+
+  <path d="M1600,700 C1600,662 550,662 550,696" class="lv" marker-end="url(#av)"/>
+  <text x="1075" y="692" text-anchor="middle" class="s12 violet">dictar desde el reposo: el modelo vuelve de la RAM a la 5080 en 0,37 s</text>
+
+  <path d="M1250,810 C1250,842 900,842 900,814" class="lb" marker-end="url(#ab)"/>
+  <text x="1075" y="852" text-anchor="middle" class="s12 blue">dictar: al instante</text>
+
+  <path d="M1600,810 V884 H200 V814" class="lr" marker-end="url(#ar)"/>
+  <text x="900" y="876" text-anchor="middle" class="s13 red">se apaga del todo: 30 min en reposo · VRAM libre &lt; 1 GB · Ctrl+Alt+L o botón ⏻ · modo CPU o pausa</text>
+  <text x="900" y="905" text-anchor="middle" class="m12">nunca a mitad de un dictado (primero termina la frase) · en CPU no hay reposo: se apaga a los 2 min</text>
+
+  <!-- ========== 4 · Modos ========== -->
+  <rect x="20" y="940" width="600" height="245" rx="14" class="panel"/>
+  <text x="40" y="975" class="h2">4 · Modos del motor</text>
+
+  <rect x="40" y="1000" width="275" height="74" rx="10" class="rec"/>
+  <rect x="197" y="990" width="108" height="20" rx="10" class="badge"/>
+  <text x="251" y="1004" text-anchor="middle" class="bt">★ recomendado</text>
+  <text x="54" y="1024" class="b14">Auto</text>
+  <text x="54" y="1044" class="s12">5080 si quedan ≥ 3 GB libres;</text>
+  <text x="54" y="1062" class="s12">si no, CPU. Lo decide al despertar</text>
+
+  <rect x="330" y="1000" width="275" height="74" rx="10" class="chip"/>
+  <text x="344" y="1024" class="b14">GPU 5080 (forzado)</text>
+  <text x="344" y="1044" class="s12">máxima velocidad</text>
+  <text x="344" y="1062" class="s12">avisa si no hay espacio</text>
+
+  <rect x="40" y="1090" width="275" height="74" rx="10" class="chip"/>
+  <text x="54" y="1114" class="b14">CPU (ligero)</text>
+  <text x="54" y="1134" class="s12">0 VRAM, para cuando la 5080 está llena</text>
+  <text x="54" y="1152" class="s12">solo texto final (≈ 5–6 s por frase)</text>
+
+  <rect x="330" y="1090" width="275" height="74" rx="10" class="chip"/>
+  <text x="344" y="1114" class="b14">Pausado</text>
+  <text x="344" y="1134" class="s12">no escucha ni carga nada</text>
+  <text x="344" y="1152" class="s12">para reuniones o grabaciones</text>
+
+  <!-- ========== 5 · Medido ========== -->
+  <rect x="640" y="940" width="600" height="245" rx="14" class="panel"/>
+  <text x="660" y="975" class="h2">5 · Medido en tu PC (F0)</text>
+  <text x="660" y="996" class="s12">9 dictados tuyos con jerga técnica · frase media de 8,3 s · beam 5</text>
+  <text x="660" y="1024" class="b14">Configuración</text>
+  <text x="935" y="1024" class="b14">VRAM</text>
+  <text x="1015" y="1024" class="b14">Frase</text>
+  <text x="1095" y="1024" class="b14">Error (WER)</text>
+  <line x1="660" y1="1032" x2="1220" y2="1032" class="row"/>
+  <text x="660" y="1052" class="s13 blue" style="font-weight:600">large-v3 · 5080 · int8 + glosario</text>
+  <text x="935" y="1052" class="s13 blue" style="font-weight:600">2,2 GB</text>
+  <text x="1015" y="1052" class="s13 blue" style="font-weight:600">0,48 s</text>
+  <text x="1095" y="1052" class="s13 blue" style="font-weight:600">3,2 %</text>
+  <text x="660" y="1075" class="s13">large-v3 · 5080 · int8</text>
+  <text x="935" y="1075" class="s13">2,2 GB</text>
+  <text x="1015" y="1075" class="s13">0,47 s</text>
+  <text x="1095" y="1075" class="s13">7,6 %</text>
+  <text x="660" y="1098" class="s13">turbo · 5080 · int8 + glosario</text>
+  <text x="935" y="1098" class="s13">1,3 GB</text>
+  <text x="1015" y="1098" class="s13">0,16 s</text>
+  <text x="1095" y="1098" class="s13">9,5 %</text>
+  <text x="660" y="1121" class="s13">turbo · 5080 · int8</text>
+  <text x="935" y="1121" class="s13">1,3 GB</text>
+  <text x="1015" y="1121" class="s13">0,18 s</text>
+  <text x="1095" y="1121" class="s13">10,1 %</text>
+  <text x="660" y="1144" class="s13">turbo · CPU · int8 (8 hilos)</text>
+  <text x="935" y="1144" class="s13">0</text>
+  <text x="1015" y="1144" class="s13">≈ 5 s</text>
+  <text x="1095" y="1144" class="s13">≈ 10 %</text>
+  <text x="660" y="1170" class="m12">Parcial con large-v3 ≈ 0,16 s por refresco · la 5090 no cambió en ninguna corrida.</text>
+
+  <!-- ========== 6 · Entorno ========== -->
+  <rect x="1260" y="940" width="520" height="245" rx="14" class="panel"/>
+  <text x="1280" y="975" class="h2">6 · Entorno propio y ligero</text>
+  <text x="1280" y="1005" class="s13">• .venv propio con uv (Python 3.13), sin PyTorch: 244 MB</text>
+  <text x="1280" y="1028" class="s13">• las versiones que ya funcionan en tu 5080:</text>
+  <text x="1296" y="1049" class="mono">faster-whisper 1.2.1 · ctranslate2 4.8.3</text>
+  <text x="1280" y="1074" class="s13">• DLLs de CUDA: las del Toolkit 12.9 ya instalado (0 MB extra)</text>
+  <text x="1280" y="1097" class="s13">• modelos compartidos, sin duplicar en disco:</text>
+  <text x="1296" y="1118" class="mono">&lt;carpeta_modelos&gt;/org--repo  (sin symlinks)</text>
+  <text x="1280" y="1143" class="s13">• el venv del otro proyecto queda intacto</text>
+  <text x="1280" y="1166" class="m12">Compartir el venv no ahorraría GPU: cada proceso carga su propio modelo.</text>
+</svg>

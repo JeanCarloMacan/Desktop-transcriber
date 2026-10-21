@@ -1,0 +1,1390 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "voice-core",
+    "description": "Transcripción local en tiempo real. Eventos en /ws y /events.",
+    "version": "0.2.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Salud",
+        "operationId": "salud_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/engine": {
+      "get": {
+        "summary": "Motor",
+        "operationId": "motor_engine_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EngineStatusOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/engine/mode": {
+      "put": {
+        "summary": "Cambiar Modo",
+        "operationId": "cambiar_modo_engine_mode_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EngineModeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EngineStatusOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/engine/release": {
+      "post": {
+        "summary": "Liberar",
+        "operationId": "liberar_engine_release_post",
+        "parameters": [
+          {
+            "name": "stop_session",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Si hay un dictado, lo termina antes de liberar",
+              "default": false,
+              "title": "Stop Session"
+            },
+            "description": "Si hay un dictado, lo termina antes de liberar"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EngineStatusOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shutdown": {
+      "post": {
+        "summary": "Cerrar Servicio",
+        "description": "Cierre ordenado: termina el dictado, cierra el worker (libera la VRAM) y para el servidor.",
+        "operationId": "cerrar_servicio_shutdown_post",
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShutdownOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions": {
+      "post": {
+        "summary": "Iniciar",
+        "operationId": "iniciar_sessions_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionStartIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Listar",
+        "operationId": "listar_sessions_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "grabando",
+                    "procesando",
+                    "final"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SessionOut"
+                  },
+                  "title": "Response Listar Sessions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/toggle": {
+      "post": {
+        "summary": "Alternar",
+        "operationId": "alternar_sessions_toggle_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionStartIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{session_id}/stop": {
+      "post": {
+        "summary": "Detener",
+        "operationId": "detener_sessions__session_id__stop_post",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{session_id}": {
+      "get": {
+        "summary": "Detalle",
+        "operationId": "detalle_sessions__session_id__get",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionDetailOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{session_id}/export": {
+      "get": {
+        "summary": "Exportar",
+        "operationId": "exportar_sessions__session_id__export_get",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "md",
+                "txt"
+              ],
+              "type": "string",
+              "default": "md",
+              "title": "Format"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/events": {
+      "get": {
+        "summary": "Eventos",
+        "operationId": "eventos_events_get",
+        "parameters": [
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "After"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 200,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "$ref": "#/components/schemas/SessionStarted"
+                      },
+                      {
+                        "$ref": "#/components/schemas/SegmentPartial"
+                      },
+                      {
+                        "$ref": "#/components/schemas/SegmentFinal"
+                      },
+                      {
+                        "$ref": "#/components/schemas/SessionFinalized"
+                      },
+                      {
+                        "$ref": "#/components/schemas/EngineState"
+                      },
+                      {
+                        "$ref": "#/components/schemas/EngineError"
+                      }
+                    ],
+                    "discriminator": {
+                      "propertyName": "type",
+                      "mapping": {
+                        "session.started": "#/components/schemas/SessionStarted",
+                        "segment.partial": "#/components/schemas/SegmentPartial",
+                        "segment.final": "#/components/schemas/SegmentFinal",
+                        "session.finalized": "#/components/schemas/SessionFinalized",
+                        "engine.state": "#/components/schemas/EngineState",
+                        "engine.error": "#/components/schemas/EngineError"
+                      }
+                    }
+                  },
+                  "title": "Response Eventos Events Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "EngineError": {
+        "properties": {
+          "seq": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seq",
+            "description": "Orden global; null en eventos efímeros (segment.partial)"
+          },
+          "ts": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ts"
+          },
+          "type": {
+            "type": "string",
+            "const": "engine.error",
+            "title": "Type",
+            "default": "engine.error"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "seq",
+          "ts",
+          "message"
+        ],
+        "title": "EngineError"
+      },
+      "EngineModeIn": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "gpu",
+              "cpu",
+              "pausado"
+            ],
+            "title": "Mode"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "mode"
+        ],
+        "title": "EngineModeIn"
+      },
+      "EngineState": {
+        "properties": {
+          "seq": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seq",
+            "description": "Orden global; null en eventos efímeros (segment.partial)"
+          },
+          "ts": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ts"
+          },
+          "type": {
+            "type": "string",
+            "const": "engine.state",
+            "title": "Type",
+            "default": "engine.state"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "apagado",
+              "arrancando",
+              "dictando",
+              "en_espera",
+              "en_reposo"
+            ],
+            "title": "State"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "gpu",
+              "cpu",
+              "pausado"
+            ],
+            "title": "Mode"
+          },
+          "device": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "cuda",
+                  "cpu"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "seq",
+          "ts",
+          "state",
+          "mode",
+          "device",
+          "reason"
+        ],
+        "title": "EngineState"
+      },
+      "EngineStatusOut": {
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "apagado",
+              "arrancando",
+              "dictando",
+              "en_espera",
+              "en_reposo"
+            ],
+            "title": "State"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "gpu",
+              "cpu",
+              "pausado"
+            ],
+            "title": "Mode"
+          },
+          "device": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "cuda",
+                  "cpu"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device",
+            "description": "Dispositivo del worker vivo; null si está apagado"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "idle_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idle S",
+            "description": "Segundos sin uso en en_espera o en_reposo; null en otros estados"
+          },
+          "rest_in_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rest In S",
+            "description": "Segundos hasta pasar el modelo a RAM (en_reposo); null si no aplica"
+          },
+          "auto_off_in_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Off In S",
+            "description": "Segundos hasta el apagado completo por inactividad; null si no aplica"
+          },
+          "vram_used_mib": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vram Used Mib",
+            "description": "VRAM usada en la 5080 (todos los procesos); null sin NVML"
+          },
+          "vram_free_mib": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vram Free Mib"
+          }
+        },
+        "type": "object",
+        "required": [
+          "state",
+          "mode",
+          "device",
+          "model",
+          "idle_s",
+          "auto_off_in_s",
+          "vram_used_mib",
+          "vram_free_mib"
+        ],
+        "title": "EngineStatusOut"
+      },
+      "ErrorOut": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "ErrorOut"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok",
+            "title": "Status",
+            "default": "ok"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version"
+        ],
+        "title": "HealthOut"
+      },
+      "SegmentFinal": {
+        "properties": {
+          "seq": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seq",
+            "description": "Orden global; null en eventos efímeros (segment.partial)"
+          },
+          "ts": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ts"
+          },
+          "type": {
+            "type": "string",
+            "const": "segment.final",
+            "title": "Type",
+            "default": "segment.final"
+          },
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "index": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Index"
+          },
+          "t0": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "T0"
+          },
+          "t1": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "T1"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "seq",
+          "ts",
+          "session_id",
+          "index",
+          "t0",
+          "t1",
+          "text"
+        ],
+        "title": "SegmentFinal"
+      },
+      "SegmentOut": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Index"
+          },
+          "t0": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "T0",
+            "description": "Inicio en segundos desde el comienzo de la sesión"
+          },
+          "t1": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "T1"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "index",
+          "t0",
+          "t1",
+          "text"
+        ],
+        "title": "SegmentOut"
+      },
+      "SegmentPartial": {
+        "properties": {
+          "seq": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seq",
+            "description": "Orden global; null en eventos efímeros (segment.partial)"
+          },
+          "ts": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ts"
+          },
+          "type": {
+            "type": "string",
+            "const": "segment.partial",
+            "title": "Type",
+            "default": "segment.partial"
+          },
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "Texto provisional de la frase en curso; lo reemplaza el siguiente parcial o final"
+          }
+        },
+        "type": "object",
+        "required": [
+          "seq",
+          "ts",
+          "session_id",
+          "text"
+        ],
+        "title": "SegmentPartial"
+      },
+      "SessionDetailOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "dictado",
+              "tarea"
+            ],
+            "title": "Mode"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "grabando",
+              "procesando",
+              "final"
+            ],
+            "title": "Status"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "device": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "cuda",
+                  "cpu"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/SegmentOut"
+            },
+            "type": "array",
+            "title": "Segments"
+          },
+          "audio_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Path"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "mode",
+          "status",
+          "started_at",
+          "ended_at",
+          "text",
+          "device",
+          "model",
+          "segments",
+          "audio_path"
+        ],
+        "title": "SessionDetailOut"
+      },
+      "SessionFinalized": {
+        "properties": {
+          "seq": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seq",
+            "description": "Orden global; null en eventos efímeros (segment.partial)"
+          },
+          "ts": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ts"
+          },
+          "type": {
+            "type": "string",
+            "const": "session.finalized",
+            "title": "Type",
+            "default": "session.finalized"
+          },
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "duration_s": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Duration S"
+          },
+          "segments": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Segments"
+          }
+        },
+        "type": "object",
+        "required": [
+          "seq",
+          "ts",
+          "session_id",
+          "text",
+          "duration_s",
+          "segments"
+        ],
+        "title": "SessionFinalized"
+      },
+      "SessionOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "dictado",
+              "tarea"
+            ],
+            "title": "Mode"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "grabando",
+              "procesando",
+              "final"
+            ],
+            "title": "Status"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "device": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "cuda",
+                  "cpu"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "mode",
+          "status",
+          "started_at",
+          "ended_at",
+          "text",
+          "device",
+          "model"
+        ],
+        "title": "SessionOut"
+      },
+      "SessionStartIn": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "dictado",
+              "tarea"
+            ],
+            "title": "Mode",
+            "default": "dictado"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SessionStartIn"
+      },
+      "SessionStarted": {
+        "properties": {
+          "seq": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seq",
+            "description": "Orden global; null en eventos efímeros (segment.partial)"
+          },
+          "ts": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ts"
+          },
+          "type": {
+            "type": "string",
+            "const": "session.started",
+            "title": "Type",
+            "default": "session.started"
+          },
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "dictado",
+              "tarea"
+            ],
+            "title": "Mode"
+          }
+        },
+        "type": "object",
+        "required": [
+          "seq",
+          "ts",
+          "session_id",
+          "mode"
+        ],
+        "title": "SessionStarted"
+      },
+      "ShutdownOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "cerrando",
+            "title": "Status",
+            "default": "cerrando"
+          }
+        },
+        "type": "object",
+        "title": "ShutdownOut"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

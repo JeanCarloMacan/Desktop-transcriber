@@ -1,0 +1,55 @@
+# Plantilla de configuración de voice-core y del overlay.
+# Cópiala como config/voice-core.toml para personalizarla (ese archivo no se sube a git). Si no existe, se usa esta.
+# Todas las claves son opcionales: si faltan, se usa el valor por defecto. Las rutas relativas parten de la raíz.
+
+[servidor]
+host = "127.0.0.1"   # solo local: no hay autenticación
+puerto = 8765
+
+[datos]
+carpeta = "datos"     # SQLite (voice-core.db), sesiones/<id>/audio.wav y registros
+guardar_audio = true  # ≈ 1,9 MB por minuto dictado
+
+[motor]
+modelo = "large-v3"   # faster-whisper; también: "large-v3-turbo", "small" o una carpeta con un modelo CTranslate2
+# carpeta_modelos = "~/.cache/transcriptor-rt/modelos"   # se descarga con: voice-core --descargar-modelo
+compute_gpu = "int8_float16"
+compute_cpu = "int8"
+hilos_cpu = 8
+idioma = "es"
+glosario = "config/glosario.txt"   # si no existe, se usa config/glosario.example.txt
+# Única GPU que puede usar el motor: parte de su nombre («5080», «RTX 4070») o su UUID («GPU-…», ver nvidia-smi -L).
+# Si no coincide con ninguna, o con varias, el motor usa la CPU: nunca se arriesga a cargar en otra GPU.
+gpu = "5080"
+modo = "auto"          # auto | gpu | cpu | pausado
+vram_minima_mib = 3072 # VRAM libre necesaria para arrancar en GPU (el modelo ocupa ≈ 2,2 GB)
+vram_ceder_mib = 1024  # en espera o reposo, si la GPU queda con menos libre, el motor se apaga y la cede
+inactividad_min = 2    # minutos con el modelo en la GPU tras un dictado (volver a dictar es instantáneo)
+reposo_min = 30        # luego, minutos con el modelo en RAM (la GPU queda con ≈ 250 MB; despierta en < 1 s);
+                       # después se apaga del todo. 0 = apagar directamente tras inactividad_min
+
+[segmentacion]
+silencio_fin_ms = 1000 # pausa que cierra una frase (con 700 las pausas para pensar partían frases)
+parcial_cada_s = 0.4   # refresco del texto en vivo (solo en GPU)
+max_frase_s = 28       # Whisper trabaja en ventanas de 30 s
+
+[audio]
+dispositivo = ""       # parte del nombre del micrófono; vacío = el de Windows por defecto
+
+[hotkeys]
+# Si alguna está ocupada por otra aplicación, el servicio lo avisa en el registro y puedes cambiarla aquí.
+# (Ctrl+Alt+Space suele estar tomada por otras herramientas.)
+dictar = "ctrl+alt+d"
+tarea = "ctrl+alt+t"
+liberar = "ctrl+alt+l"  # libera la GPU al instante; si estás dictando, primero cierra la sesión
+sonidos = true
+
+[overlay]
+lanzar_servicio = true    # si voice-core no está corriendo, el overlay lo arranca oculto (y lo cierra al salir)
+ancho = 680               # inicial: luego arrastra los bordes del panel (se recuerda)
+letra = 13                # inicial: luego Ctrl + rueda del ratón sobre el panel (se recuerda)
+visible_tras_s = 15       # el panel se desvanece este tiempo después de terminar (no si tienes el ratón encima)
+copiar_al_terminar = true # el texto de cada dictado queda en el portapapeles
+opacidad = 0.94
+mostrar = "ctrl+alt+o"    # muestra u oculta el panel con el último texto
+pegar = "ctrl+alt+v"      # pega el último dictado donde está el cursor

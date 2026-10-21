@@ -1,0 +1,31 @@
+# --- Entorno y cachés de Python ---
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# --- Datos locales: grabaciones de voz, base de datos, registros y resultados de pruebas ---
+datos/
+*.log
+
+# --- Configuración personal (las plantillas *.example.* sí se suben) ---
+config/voice-core.toml
+config/glosario.txt
+
+# --- Editores y sistema operativo ---
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# --- Ajustes locales de Claude Code ---
+.claude/settings.local.json

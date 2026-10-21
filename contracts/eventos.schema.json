@@ -1,0 +1,370 @@
+{
+  "$defs": {
+    "EngineError": {
+      "properties": {
+        "seq": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Orden global; null en eventos efímeros (segment.partial)",
+          "title": "Seq"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "engine.error",
+          "default": "engine.error",
+          "title": "Type",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "session_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Session Id"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "message"
+      ],
+      "title": "EngineError",
+      "type": "object"
+    },
+    "EngineState": {
+      "properties": {
+        "seq": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Orden global; null en eventos efímeros (segment.partial)",
+          "title": "Seq"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "engine.state",
+          "default": "engine.state",
+          "title": "Type",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "apagado",
+            "arrancando",
+            "dictando",
+            "en_espera",
+            "en_reposo"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "auto",
+            "gpu",
+            "cpu",
+            "pausado"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "device": {
+          "anyOf": [
+            {
+              "enum": [
+                "cuda",
+                "cpu"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Device"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "state",
+        "mode",
+        "device",
+        "reason"
+      ],
+      "title": "EngineState",
+      "type": "object"
+    },
+    "SegmentFinal": {
+      "properties": {
+        "seq": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Orden global; null en eventos efímeros (segment.partial)",
+          "title": "Seq"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "segment.final",
+          "default": "segment.final",
+          "title": "Type",
+          "type": "string"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "index": {
+          "minimum": 0,
+          "title": "Index",
+          "type": "integer"
+        },
+        "t0": {
+          "minimum": 0,
+          "title": "T0",
+          "type": "number"
+        },
+        "t1": {
+          "minimum": 0,
+          "title": "T1",
+          "type": "number"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "session_id",
+        "index",
+        "t0",
+        "t1",
+        "text"
+      ],
+      "title": "SegmentFinal",
+      "type": "object"
+    },
+    "SegmentPartial": {
+      "properties": {
+        "seq": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Orden global; null en eventos efímeros (segment.partial)",
+          "title": "Seq"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "segment.partial",
+          "default": "segment.partial",
+          "title": "Type",
+          "type": "string"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "text": {
+          "description": "Texto provisional de la frase en curso; lo reemplaza el siguiente parcial o final",
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "session_id",
+        "text"
+      ],
+      "title": "SegmentPartial",
+      "type": "object"
+    },
+    "SessionFinalized": {
+      "properties": {
+        "seq": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Orden global; null en eventos efímeros (segment.partial)",
+          "title": "Seq"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "session.finalized",
+          "default": "session.finalized",
+          "title": "Type",
+          "type": "string"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "duration_s": {
+          "minimum": 0,
+          "title": "Duration S",
+          "type": "number"
+        },
+        "segments": {
+          "minimum": 0,
+          "title": "Segments",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "session_id",
+        "text",
+        "duration_s",
+        "segments"
+      ],
+      "title": "SessionFinalized",
+      "type": "object"
+    },
+    "SessionStarted": {
+      "properties": {
+        "seq": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Orden global; null en eventos efímeros (segment.partial)",
+          "title": "Seq"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "session.started",
+          "default": "session.started",
+          "title": "Type",
+          "type": "string"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "dictado",
+            "tarea"
+          ],
+          "title": "Mode",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "session_id",
+        "mode"
+      ],
+      "title": "SessionStarted",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "engine.error": "#/$defs/EngineError",
+      "engine.state": "#/$defs/EngineState",
+      "segment.final": "#/$defs/SegmentFinal",
+      "segment.partial": "#/$defs/SegmentPartial",
+      "session.finalized": "#/$defs/SessionFinalized",
+      "session.started": "#/$defs/SessionStarted"
+    },
+    "propertyName": "type"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/SessionStarted"
+    },
+    {
+      "$ref": "#/$defs/SegmentPartial"
+    },
+    {
+      "$ref": "#/$defs/SegmentFinal"
+    },
+    {
+      "$ref": "#/$defs/SessionFinalized"
+    },
+    {
+      "$ref": "#/$defs/EngineState"
+    },
+    {
+      "$ref": "#/$defs/EngineError"
+    }
+  ],
+  "title": "Eventos de voice-core"
+}

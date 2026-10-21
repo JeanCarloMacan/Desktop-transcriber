@@ -1,0 +1,1 @@
+Dictado técnico en español, con puntuación y tildes. Términos frecuentes: endpoint, payload, Pydantic, SQLite, FastAPI, WebSocket, pull request, merge, fix, tests, overlay, dataset, wavelet, prompt, Claude, paper, n8n, LM Studio, JSON, learning rate, batch size, checkpoint, fine-tuning, LoRA, F1 y overfitting.

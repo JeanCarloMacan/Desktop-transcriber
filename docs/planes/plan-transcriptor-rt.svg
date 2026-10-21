@@ -1,0 +1,383 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1670" viewBox="0 0 1800 1670" font-family="Segoe UI, Inter, Arial, sans-serif">
+  <title>Transcriptor RT — plan de arquitectura y opciones</title>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#52606D"/></marker>
+    <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2563EB"/></marker>
+    <marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7C3AED"/></marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9AA5B1"/></marker>
+    <style>
+      text { fill: #1F2933; }
+      .h1 { font-size: 30px; font-weight: 700; }
+      .sub { font-size: 15px; fill: #52606D; }
+      .h2 { font-size: 20px; font-weight: 700; }
+      .b16 { font-size: 16px; font-weight: 700; }
+      .b15 { font-size: 15px; font-weight: 600; }
+      .b14 { font-size: 14px; font-weight: 600; }
+      .s13 { font-size: 13px; fill: #3E4C59; }
+      .s12 { font-size: 12.5px; fill: #52606D; }
+      .m12 { font-size: 12px; fill: #7B8794; }
+      .blue { fill: #1D4ED8; }
+      .purple { fill: #6D28D9; }
+      .green { fill: #15803D; }
+      .red { fill: #B91C1C; }
+      .pos { fill: #15803D; }
+      .neg { fill: #B91C1C; }
+      .w { fill: #FFFFFF; }
+      .panel { fill: #FFFFFF; stroke: #E4E7EB; stroke-width: 1.5; }
+      .core { fill: #EEF4FF; stroke: #2563EB; stroke-width: 2; }
+      .cbox { fill: #FFFFFF; stroke: #93B4F5; stroke-width: 1.5; }
+      .cons { fill: #EAF7EF; stroke: #16A34A; stroke-width: 1.5; }
+      .fut { fill: #F8FAFC; stroke: #9AA5B1; stroke-width: 1.5; stroke-dasharray: 6 5; }
+      .llm { fill: #F3EEFF; stroke: #7C3AED; stroke-width: 1.5; }
+      .inp { fill: #F5F7FA; stroke: #9AA5B1; stroke-width: 1.5; }
+      .chip { fill: #FFFFFF; stroke: #CBD2D9; stroke-width: 1.2; }
+      .rec { fill: #FFF8EB; stroke: #F59E0B; stroke-width: 2.2; }
+      .risk { fill: #FEF2F2; stroke: #DC2626; stroke-width: 1.5; }
+      .ln { stroke: #52606D; stroke-width: 1.8; fill: none; }
+      .lb { stroke: #2563EB; stroke-width: 2; fill: none; }
+      .lp { stroke: #7C3AED; stroke-width: 1.8; fill: none; }
+      .lg { stroke: #9AA5B1; stroke-width: 1.8; fill: none; stroke-dasharray: 6 5; }
+      .badge { fill: #F59E0B; }
+      .bt { font-size: 11px; font-weight: 700; fill: #FFFFFF; }
+    </style>
+  </defs>
+
+  <rect width="1800" height="1670" fill="#F4F6F9"/>
+
+  <!-- ========== Encabezado ========== -->
+  <text x="40" y="52" class="h1">Transcriptor RT — plan de arquitectura y opciones</text>
+  <text x="40" y="80" class="sub">Caso 1: dictar y tener el texto al instante · Caso 2: convertir lo dictado en tareas por categoría · Windows, todo local</text>
+  <rect x="1220" y="30" width="540" height="44" rx="22" fill="#1F2933"/>
+  <text x="1490" y="57" text-anchor="middle" class="w" style="font-size:13.5px;font-weight:600">Voz: solo RTX 5080 (16 GB) o CPU · la RTX 5090 queda fuera</text>
+
+  <!-- ========== 1 · Arquitectura ========== -->
+  <rect x="20" y="110" width="1760" height="570" rx="14" class="panel"/>
+  <text x="40" y="145" class="h2">1 · Arquitectura: un servicio central y varios consumidores</text>
+
+  <!-- Entradas -->
+  <rect x="50" y="190" width="200" height="90" rx="10" class="inp"/>
+  <text x="66" y="216" class="b15">Micrófono</text>
+  <text x="66" y="238" class="s12">ZOOM U-22 o USB</text>
+  <text x="66" y="258" class="s12">solo graba con hotkey</text>
+
+  <rect x="50" y="300" width="200" height="130" rx="10" class="inp"/>
+  <text x="66" y="326" class="b15">Hotkeys globales</text>
+  <text x="66" y="350" class="s12">Ctrl+Alt+D · dictar</text>
+  <text x="66" y="372" class="s12">Ctrl+Alt+T · dictar tarea</text>
+  <text x="66" y="394" class="s12">Ctrl+Alt+S · captura</text>
+  <text x="66" y="416" class="s12">Ctrl+Alt+L · liberar GPU</text>
+
+  <rect x="50" y="450" width="200" height="80" rx="10" class="inp"/>
+  <text x="66" y="476" class="b15">Pantalla</text>
+  <text x="66" y="498" class="s12">captura de una región o</text>
+  <text x="66" y="516" class="s12">de la ventana activa</text>
+
+  <!-- Leyenda -->
+  <text x="50" y="578" class="b14">Leyenda</text>
+  <rect x="50" y="590" width="26" height="14" rx="3" class="cons"/>
+  <text x="86" y="602" class="s12">se construye en el MVP</text>
+  <rect x="50" y="614" width="26" height="14" rx="3" class="fut"/>
+  <text x="86" y="626" class="s12">futuro u opcional</text>
+  <path d="M50,645 H74" class="lb" marker-end="url(#ab)"/>
+  <text x="86" y="650" class="s12">flujo de audio y eventos</text>
+
+  <!-- Flechas entradas → core -->
+  <path d="M250,235 H275 V285 H306" class="ln" marker-end="url(#a)"/>
+  <path d="M250,365 H286" class="ln" marker-end="url(#a)"/>
+  <path d="M250,490 H280 V460 H306" class="ln" marker-end="url(#a)"/>
+
+  <!-- voice-core -->
+  <rect x="290" y="170" width="640" height="470" rx="14" class="core"/>
+  <text x="310" y="202" class="h2 blue">voice-core</text>
+  <text x="432" y="201" class="s13">servicio de transcripción · Python · 127.0.0.1:8765 (solo local)</text>
+
+  <rect x="310" y="230" width="180" height="110" rx="10" class="cbox"/>
+  <text x="324" y="254" class="b14">Captura de audio</text>
+  <text x="324" y="276" class="s12">WASAPI · 16 kHz mono</text>
+  <text x="324" y="296" class="s12">búfer circular</text>
+  <text x="324" y="316" class="s12">medidor de nivel</text>
+
+  <rect x="520" y="230" width="170" height="110" rx="10" class="cbox"/>
+  <text x="534" y="254" class="b14">VAD (Silero)</text>
+  <text x="534" y="276" class="s12">detecta voz y pausas</text>
+  <text x="534" y="296" class="s12">corta en frases</text>
+  <text x="534" y="316" class="s12">evita texto inventado</text>
+
+  <rect x="720" y="230" width="190" height="110" rx="10" class="cbox"/>
+  <text x="734" y="254" class="b14">Motor STT</text>
+  <text x="734" y="272" class="m12">proceso que se apaga solo</text>
+  <text x="734" y="292" class="s12">pasada rápida → parcial</text>
+  <text x="734" y="311" class="s12">pasada precisa → final</text>
+  <text x="734" y="330" class="s12">+ glosario de términos</text>
+
+  <path d="M490,285 H516" class="lb" marker-end="url(#ab)"/>
+  <path d="M690,285 H716" class="lb" marker-end="url(#ab)"/>
+
+  <rect x="310" y="380" width="260" height="110" rx="10" class="cbox"/>
+  <text x="324" y="404" class="b14">Sesiones y segmentos</text>
+  <text x="324" y="426" class="s12">SQLite (WAL) + carpeta por sesión</text>
+  <text x="324" y="446" class="s12">audio .wav · capturas · export .md</text>
+  <text x="324" y="466" class="s12">grabando → final → editada</text>
+
+  <rect x="600" y="380" width="310" height="110" rx="10" class="cbox"/>
+  <text x="614" y="404" class="b14">Bus de eventos</text>
+  <text x="614" y="426" class="s12">segment.partial · segment.final</text>
+  <text x="614" y="446" class="s12">session.finalized · session.edited</text>
+  <text x="614" y="466" class="s12">cada evento con un seq creciente</text>
+
+  <path d="M815,340 V376" class="lb" marker-end="url(#ab)"/>
+  <path d="M600,435 H574" class="lb" marker-end="url(#ab)"/>
+
+  <rect x="310" y="520" width="600" height="100" rx="10" style="fill:#1D4ED8"/>
+  <text x="330" y="548" class="b15 w">API pública · contrato primero (OpenAPI + JSON Schema)</text>
+  <text x="330" y="572" class="s13 w">REST /sessions · /sessions/{id}/export?format=md · /attachments</text>
+  <text x="330" y="594" class="s13 w">WebSocket /ws (en vivo) · GET /events?after=seq (reanudar sin perder nada)</text>
+
+  <path d="M440,490 V516" class="lb" marker-end="url(#ab)"/>
+  <path d="M755,490 V516" class="lb" marker-end="url(#ab)"/>
+
+  <!-- Tronco hacia consumidores -->
+  <path d="M910,570 H965" class="lb"/>
+  <path d="M965,238 V631" class="lb"/>
+  <path d="M965,238 H996" class="lb" marker-end="url(#ab)"/>
+  <path d="M965,350 H996" class="lb" marker-end="url(#ab)"/>
+  <path d="M965,460 H996" class="lb" marker-end="url(#ab)"/>
+  <path d="M965,559 H996" class="lg" marker-end="url(#ag)"/>
+  <path d="M965,631 H996" class="lg" marker-end="url(#ag)"/>
+
+  <!-- Consumidor 1: overlay -->
+  <rect x="1000" y="180" width="760" height="116" rx="10" class="cons"/>
+  <text x="1016" y="206" class="b15">Overlay flotante · consumidor 1</text>
+  <text x="1016" y="230" class="s13">como una sticky note sobre la ventana que revisas</text>
+  <text x="1016" y="252" class="s13">siempre encima · no roba el foco · semitransparente</text>
+  <text x="1016" y="274" class="s13">compacto (2–3 líneas) o expandido · arrastrable</text>
+
+  <rect x="1440" y="190" width="306" height="96" rx="10" style="fill:#111827"/>
+  <circle cx="1456" cy="207" r="5" style="fill:#EF4444"/>
+  <text x="1468" y="211" style="fill:#9CA3AF;font-size:11.5px">REC · Dictado · 00:42</text>
+  <text x="1732" y="211" text-anchor="end" style="fill:#9CA3AF;font-size:11.5px">copiar · editar</text>
+  <text x="1456" y="236" style="fill:#F9FAFB;font-size:13px">La figura 3 necesita leyenda y</text>
+  <text x="1456" y="256" style="fill:#F9FAFB;font-size:13px">unidades en el eje Y.</text>
+  <text x="1456" y="276" style="fill:#9CA3AF;font-size:13px;font-style:italic">Además revisar la escala del…</text>
+
+  <!-- Consumidor 2: editor -->
+  <rect x="1000" y="310" width="760" height="80" rx="10" class="cons"/>
+  <text x="1016" y="334" class="b15">Editor web y bandeja de sesiones · consumidor 2</text>
+  <text x="1016" y="356" class="s13">corregir texto · insertar capturas donde las tomaste · «Copiar para IA» (Markdown + imágenes)</text>
+  <text x="1016" y="376" class="s13">o pegarlo directo en la ventana activa: Claude, ChatGPT, correo, Word…</text>
+
+  <!-- Consumidor 3: tareas -->
+  <rect x="1000" y="404" width="760" height="112" rx="10" class="cons"/>
+  <text x="1016" y="430" class="b15">tasks-service · consumidor 3</text>
+  <text x="1016" y="454" class="s13">toma sesiones en modo Tarea</text>
+  <text x="1016" y="474" class="s13">o a pedido («extraer tareas»)</text>
+  <text x="1016" y="496" class="m12">su propia API y BD · :8766</text>
+  <path d="M1268,460 H1296" class="lp" marker-end="url(#ap)"/>
+
+  <rect x="1300" y="416" width="205" height="88" rx="8" class="llm"/>
+  <text x="1314" y="438" class="b14 purple">LM Studio :1234</text>
+  <text x="1314" y="457" class="s12">RTX 5090 · JSON Schema</text>
+  <text x="1314" y="475" class="m12">Qwen3.5-35B-A3B</text>
+  <text x="1314" y="492" class="m12">o gpt-oss-20b</text>
+  <path d="M1505,460 H1531" class="lp" marker-end="url(#ap)"/>
+
+  <rect x="1535" y="416" width="210" height="88" rx="8" style="fill:#FFFFFF;stroke:#16A34A;stroke-width:1.5"/>
+  <text x="1549" y="438" class="b14 green">Tareas por categoría</text>
+  <text x="1549" y="457" class="s12">bandeja → aprobar/editar</text>
+  <text x="1549" y="475" class="m12">Trabajo · Investigación</text>
+  <text x="1549" y="492" class="m12">Personal · Canal · …</text>
+
+  <!-- Futuros -->
+  <rect x="1000" y="530" width="760" height="58" rx="10" class="fut"/>
+  <text x="1016" y="553" class="b14">MCP server · futuro</text>
+  <text x="1016" y="575" class="s13">Claude Code, Claude Desktop o LM Studio piden: «dame mi último dictado con sus capturas»</text>
+
+  <rect x="1000" y="602" width="760" height="58" rx="10" class="fut"/>
+  <text x="1016" y="625" class="b14">Webhooks y carpeta .md · futuro</text>
+  <text x="1016" y="647" class="s13">n8n, Obsidian, scripts propios… un servicio nuevo se conecta sin tocar el core</text>
+
+  <!-- ========== 2 · Decisiones ========== -->
+  <rect x="20" y="700" width="1760" height="400" rx="14" class="panel"/>
+  <text x="40" y="735" class="h2">2 · Decisiones clave y opciones</text>
+  <text x="400" y="734" class="s13">★ = recomendado para empezar · cada pieza queda detrás de una interfaz, así que se puede cambiar luego</text>
+
+  <!-- D1 -->
+  <text x="50" y="798" class="b15">D1 · Motor de voz</text>
+  <text x="50" y="818" class="s12">¿qué convierte audio en texto?</text>
+  <rect x="300" y="770" width="350" height="68" rx="10" class="rec"/>
+  <rect x="532" y="760" width="108" height="20" rx="10" class="badge"/>
+  <text x="586" y="774" text-anchor="middle" class="bt">★ recomendado</text>
+  <text x="314" y="792" class="b14">faster-whisper large-v3 + glosario</text>
+  <text x="314" y="811" class="s12">solo RTX 5080 o CPU · ya probado en tu PC</text>
+  <text x="314" y="829" class="s12">2,2 GB · 3 % de error con tu jerga (F0)</text>
+  <rect x="670" y="770" width="350" height="68" rx="10" class="chip"/>
+  <text x="684" y="792" class="b14">Parakeet TDT 0.6B v3 (ONNX)</text>
+  <text x="684" y="811" class="s12">muy rápido, incluso en CPU · incluye español</text>
+  <text x="684" y="829" class="s12">menos ajustes (sin glosario) · a validar</text>
+  <rect x="1040" y="770" width="350" height="68" rx="10" class="chip"/>
+  <text x="1054" y="792" class="b14">STT en la nube (streaming)</text>
+  <text x="1054" y="811" class="s12">Deepgram, OpenAI, Azure… palabra a palabra</text>
+  <text x="1054" y="829" class="s12">pago por minuto · el audio sale de tu PC</text>
+  <rect x="1410" y="770" width="350" height="68" rx="10" class="chip"/>
+  <text x="1424" y="792" class="b14">Win+H (dictado de Windows)</text>
+  <text x="1424" y="811" class="s12">cero esfuerzo, ya lo tienes</text>
+  <text x="1424" y="829" class="s12">no es un servicio: sin API ni historial</text>
+
+  <!-- D2 -->
+  <text x="50" y="878" class="b15">D2 · Ventana flotante</text>
+  <text x="50" y="898" class="s12">¿con qué se dibuja el overlay?</text>
+  <rect x="300" y="850" width="350" height="68" rx="10" class="rec"/>
+  <rect x="532" y="840" width="108" height="20" rx="10" class="badge"/>
+  <text x="586" y="854" text-anchor="middle" class="bt">★ recomendado</text>
+  <text x="314" y="872" class="b14">PySide6 (Qt)</text>
+  <text x="314" y="891" class="s12">mismo lenguaje que el servicio</text>
+  <text x="314" y="909" class="s12">encima de todo, sin robar foco, click-through</text>
+  <rect x="670" y="850" width="350" height="68" rx="10" class="chip"/>
+  <text x="684" y="872" class="b14">Tauri v2</text>
+  <text x="684" y="891" class="s12">UI web bonita y ligera</text>
+  <text x="684" y="909" class="s12">hay que instalar Rust · tres lenguajes</text>
+  <rect x="1040" y="850" width="350" height="68" rx="10" class="chip"/>
+  <text x="1054" y="872" class="b14">Electron</text>
+  <text x="1054" y="891" class="s12">UI web, muy documentado</text>
+  <text x="1054" y="909" class="s12">pesado en RAM y en disco</text>
+  <rect x="1410" y="850" width="350" height="68" rx="10" class="chip"/>
+  <text x="1424" y="872" class="b14">Navegador + Picture-in-Picture</text>
+  <text x="1424" y="891" class="s12">cero instalación (Edge o Chrome)</text>
+  <text x="1424" y="909" class="s12">hay que abrirlo con un clic en cada uso</text>
+
+  <!-- D3 -->
+  <text x="50" y="958" class="b15">D3 · Integración</text>
+  <text x="50" y="978" class="s12">¿cómo lo consumen otros?</text>
+  <rect x="300" y="930" width="350" height="68" rx="10" class="rec"/>
+  <rect x="532" y="920" width="108" height="20" rx="10" class="badge"/>
+  <text x="586" y="934" text-anchor="middle" class="bt">★ recomendado</text>
+  <text x="314" y="952" class="b14">WebSocket + REST con cursor</text>
+  <text x="314" y="971" class="s12">en vivo; al reconectar pide /events?after=seq</text>
+  <text x="314" y="989" class="s12">y recupera lo que se perdió</text>
+  <rect x="670" y="930" width="350" height="68" rx="10" class="chip"/>
+  <text x="684" y="952" class="b14">Webhooks salientes</text>
+  <text x="684" y="971" class="s12">POST a URLs registradas (p. ej. n8n)</text>
+  <text x="684" y="989" class="s12">simple para quien recibe; pide reintentos</text>
+  <rect x="1040" y="930" width="350" height="68" rx="10" class="chip"/>
+  <text x="1054" y="952" class="b14">Carpeta de archivos .md</text>
+  <text x="1054" y="971" class="s12">cada sesión = un Markdown con imágenes</text>
+  <text x="1054" y="989" class="s12">Obsidian o cualquier script lo leen</text>
+  <rect x="1410" y="930" width="350" height="68" rx="10" class="chip"/>
+  <text x="1424" y="952" class="b14">Broker (NATS o Redis Streams)</text>
+  <text x="1424" y="971" class="s12">robusto para muchos servicios</text>
+  <text x="1424" y="989" class="s12">sobredimensionado para hoy</text>
+
+  <!-- D4 -->
+  <text x="50" y="1038" class="b15">D4 · Qué va a tareas</text>
+  <text x="50" y="1058" class="s12">¿quién lo decide?</text>
+  <rect x="300" y="1010" width="350" height="68" rx="10" class="rec"/>
+  <rect x="532" y="1000" width="108" height="20" rx="10" class="badge"/>
+  <text x="586" y="1014" text-anchor="middle" class="bt">★ recomendado</text>
+  <text x="314" y="1032" class="b14">Modo por hotkey + botón</text>
+  <text x="314" y="1051" class="s12">Ctrl+Alt+T dicta directo a tareas;</text>
+  <text x="314" y="1069" class="s12">en cualquier sesión: «extraer tareas»</text>
+  <rect x="670" y="1010" width="350" height="68" rx="10" class="chip"/>
+  <text x="684" y="1032" class="b14">Frase de voz</text>
+  <text x="684" y="1051" class="s12">«nueva tarea: …» dentro del dictado</text>
+  <text x="684" y="1069" class="s12">natural, pero se dispara por error</text>
+  <rect x="1040" y="1010" width="350" height="68" rx="10" class="chip"/>
+  <text x="1054" y="1032" class="b14">El LLM revisa todo</text>
+  <text x="1054" y="1051" class="s12">extrae tareas de cada sesión a una bandeja</text>
+  <text x="1054" y="1069" class="s12">útil con feedback largo; más ruido</text>
+
+  <!-- ========== 3 · Rutas ========== -->
+  <rect x="20" y="1120" width="1760" height="265" rx="14" class="panel"/>
+  <text x="40" y="1155" class="h2">3 · Tres rutas completas (y sus riesgos)</text>
+
+  <rect x="50" y="1175" width="410" height="195" rx="12" class="rec"/>
+  <rect x="342" y="1165" width="108" height="20" rx="10" class="badge"/>
+  <text x="396" y="1179" text-anchor="middle" class="bt">✓ elegida</text>
+  <text x="68" y="1205" class="b16">A · Todo Python, todo local</text>
+  <text x="68" y="1231" class="s13">Core: FastAPI + faster-whisper (RTX 5080)</text>
+  <text x="68" y="1252" class="s13">Overlay: PySide6 · editor y tareas: web local</text>
+  <text x="68" y="1273" class="s13">Tareas: LM Studio en la RTX 5090</text>
+  <text x="68" y="1294" class="s13 pos">+ un solo lenguaje, privado y sin costo</text>
+  <text x="68" y="1315" class="s13 pos">+ lo más rápido de construir y depurar</text>
+  <text x="68" y="1336" class="s13 neg">− UI más sobria; empaquetar con PyInstaller</text>
+
+  <rect x="480" y="1175" width="410" height="195" rx="12" class="chip"/>
+  <text x="498" y="1205" class="b16">B · Core Python + UI en Tauri</text>
+  <text x="498" y="1231" class="s13">Mismo core y el mismo contrato de API</text>
+  <text x="498" y="1252" class="s13">Overlay, editor y tareas en una sola app web</text>
+  <text x="498" y="1273" class="s13 pos">+ UI más pulida; editor rico (pegar imágenes)</text>
+  <text x="498" y="1294" class="s13 pos">+ app ligera, con icono en la bandeja</text>
+  <text x="498" y="1315" class="s13 neg">− tres lenguajes: Python, Rust y TypeScript</text>
+  <text x="498" y="1336" class="s13 neg">− hay que instalar Rust (hoy no lo tienes)</text>
+
+  <rect x="910" y="1175" width="410" height="195" rx="12" class="chip"/>
+  <text x="928" y="1205" class="b16">C · Voz en la nube</text>
+  <text x="928" y="1231" class="s13">Core como proxy a un STT en streaming</text>
+  <text x="928" y="1252" class="s13">Overlay: cualquiera de las opciones de D2</text>
+  <text x="928" y="1273" class="s13 pos">+ palabra a palabra, latencia mínima</text>
+  <text x="928" y="1294" class="s13 pos">+ no ocupa GPU ni CPU</text>
+  <text x="928" y="1315" class="s13 neg">− pago por minuto; el audio sale de tu PC</text>
+  <text x="928" y="1336" class="s13 neg">− con tu hardware no compensa</text>
+
+  <rect x="1340" y="1175" width="410" height="195" rx="12" class="risk"/>
+  <text x="1358" y="1205" class="b16 red">Riesgos y cómo cubrirlos</text>
+  <text x="1358" y="1231" class="s13">Whisper inventa texto en silencio → VAD + filtro</text>
+  <text x="1358" y="1252" class="s13">El mic capta el video que revisas → auriculares</text>
+  <text x="1358" y="1273" class="s13">5080 compartida → se apaga solo y cede</text>
+  <text x="1358" y="1294" class="s13">Inglés técnico mal escrito → glosario/hotwords</text>
+  <text x="1358" y="1315" class="s13">Overlay que roba el foco → WS_EX_NOACTIVATE</text>
+  <text x="1358" y="1336" class="s13">Privacidad → graba solo con hotkey, todo local</text>
+
+  <!-- ========== 4 · Hoja de ruta ========== -->
+  <rect x="20" y="1405" width="1760" height="250" rx="14" class="panel"/>
+  <text x="40" y="1440" class="h2">4 · Hoja de ruta por fases</text>
+  <text x="340" y="1439" class="s13">cada fase termina con algo que ya puedes usar</text>
+
+  <rect x="50" y="1460" width="270" height="118" rx="10" style="fill:#F5F7FA;stroke:#9AA5B1;stroke-width:1.5"/>
+  <text x="66" y="1488" class="b15">F0 · Prueba de motores ✓</text>
+  <text x="66" y="1512" class="s12">10 audios tuyos (español + jerga)</text>
+  <text x="66" y="1532" class="s12">latencia, errores y VRAM</text>
+  <text x="66" y="1552" class="s12">turbo vs large-v3 · GPU y CPU</text>
+  <path d="M320,1519 H333" class="ln" marker-end="url(#a)"/>
+
+  <rect x="336" y="1460" width="270" height="118" rx="10" style="fill:#EEF4FF;stroke:#2563EB;stroke-width:1.5"/>
+  <text x="352" y="1488" class="b15 blue">F1 · voice-core MVP ✓</text>
+  <text x="352" y="1512" class="s12">contrato OpenAPI primero</text>
+  <text x="352" y="1532" class="s12">captura + VAD + STT + sesiones</text>
+  <text x="352" y="1552" class="s12">REST + WebSocket + hotkeys</text>
+  <path d="M606,1519 H619" class="ln" marker-end="url(#a)"/>
+
+  <rect x="622" y="1460" width="270" height="118" rx="10" style="fill:#EEF4FF;stroke:#2563EB;stroke-width:1.5"/>
+  <text x="638" y="1488" class="b15 blue">F2 · Overlay flotante ✓</text>
+  <text x="638" y="1512" class="s12">parcial en gris, final en blanco</text>
+  <text x="638" y="1532" class="s12">copiar al portapapeles</text>
+  <text x="638" y="1552" class="s12">modo compacto y expandido</text>
+  <path d="M892,1519 H905" class="ln" marker-end="url(#a)"/>
+
+  <rect x="908" y="1460" width="270" height="118" rx="10" style="fill:#EEF4FF;stroke:#2563EB;stroke-width:1.5"/>
+  <text x="924" y="1488" class="b15 blue">F3 · Editor + capturas</text>
+  <text x="924" y="1512" class="s12">corregir y reordenar el texto</text>
+  <text x="924" y="1532" class="s12">capturas con Ctrl+Alt+S</text>
+  <text x="924" y="1552" class="s12">«Copiar para IA» (Markdown)</text>
+  <path d="M1178,1519 H1191" class="ln" marker-end="url(#a)"/>
+
+  <rect x="1194" y="1460" width="270" height="118" rx="10" style="fill:#F3EEFF;stroke:#7C3AED;stroke-width:1.5"/>
+  <text x="1210" y="1488" class="b15 purple">F4 · tasks-service</text>
+  <text x="1210" y="1512" class="s12">LM Studio + JSON Schema</text>
+  <text x="1210" y="1532" class="s12">categorías configurables</text>
+  <text x="1210" y="1552" class="s12">bandeja: aprobar o editar</text>
+  <path d="M1464,1519 H1477" class="ln" marker-end="url(#a)"/>
+
+  <rect x="1480" y="1460" width="270" height="118" rx="10" class="fut"/>
+  <text x="1496" y="1488" class="b15">F5 · Extras</text>
+  <text x="1496" y="1512" class="s12">MCP para Claude y LM Studio</text>
+  <text x="1496" y="1532" class="s12">webhooks · carpeta .md</text>
+  <text x="1496" y="1552" class="s12">glosario · limpieza con LLM</text>
+
+  <path d="M50,1590 V1600 H1178 V1590" class="lb"/>
+  <text x="614" y="1626" text-anchor="middle" class="b14 blue">Caso de uso 1 listo: dictar, verlo en vivo, corregirlo y pasarlo a la IA</text>
+  <path d="M1194,1590 V1600 H1464 V1590" class="lp"/>
+  <text x="1329" y="1626" text-anchor="middle" class="b14 purple">Caso de uso 2: tareas</text>
+  <path d="M1480,1590 V1600 H1750 V1590" class="lg"/>
+  <text x="1615" y="1626" text-anchor="middle" class="s13">según lo que vaya surgiendo</text>
+</svg>

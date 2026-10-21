@@ -1,0 +1,1 @@
+Dictado técnico en español, con puntuación y tildes. Términos frecuentes: endpoint, payload, API, JSON, pull request, merge, commit, tests, dataset, prompt, GPU, fine-tuning, learning rate, batch size, checkpoint y overfitting.
