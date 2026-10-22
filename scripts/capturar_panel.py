@@ -1,15 +1,17 @@
-"""Genera docs/img/panel.png: el panel real (Qt, fuentes de Windows) en tres estados, sin mostrarlo en pantalla.
+"""Genera docs/img/panel.png (el panel en tres estados) y docs/img/editor.png (el editor con una captura), con Qt y
+las fuentes reales de Windows, sin mostrar nada en pantalla.
 
 Uso (desde la raíz):  .venv\\Scripts\\python scripts\\capturar_panel.py
 """
 from __future__ import annotations
 
+import shutil
 import sys
 import tempfile
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QImage, QPainter
 from PySide6.QtWidgets import QApplication
 
@@ -53,6 +55,46 @@ def reposo() -> EstadoPanel:
     return e
 
 
+class _ClienteDemo(QObject):
+    respuesta = Signal(str, object)
+
+    def pedir(self, *args: object, **kwargs: object) -> None:
+        pass
+
+
+def capturar_editor(panel_png: Path) -> Path:
+    """El editor con tres sesiones y un documento que lleva una captura (la del propio panel) en su sitio."""
+    from overlay.editor import Editor
+
+    carpeta = Path(tempfile.mkdtemp()) / "sesion"
+    (carpeta / "capturas").mkdir(parents=True)
+    shutil.copy(panel_png, carpeta / "capturas" / "001.png")
+    hace = datetime.now(UTC)
+    sesiones = [
+        {"id": "a", "started_at": (hace - timedelta(minutes=3)).isoformat(), "mode": "dictado", "attachments": 1,
+         "edited_at": hace.isoformat(), "text": "Revisa la figura 3: la leyenda tapa la curva del modelo…"},
+        {"id": "b", "started_at": (hace - timedelta(hours=1)).isoformat(), "mode": "tarea", "attachments": 0,
+         "edited_at": None, "text": "Nueva tarea: responder al segundo revisor antes del viernes."},
+        {"id": "c", "started_at": (hace - timedelta(days=1)).isoformat(), "mode": "dictado", "attachments": 2,
+         "edited_at": None, "text": "Sube un poco el learning rate y guarda un checkpoint en cada época."},
+    ]
+    markdown = ("# Dictado · revisión de la figura 3\n\n"
+                "Revisa la figura 3: la leyenda tapa la curva del modelo y el eje vertical no tiene unidades.\n\n"
+                "![Imagen 1](capturas/001.png)\n\n"
+                "Además, en el endpoint de sesiones falta validar el payload con Pydantic.\n")
+    editor = Editor(_ClienteDemo())  # type: ignore[arg-type]
+    editor.resize(1180, 760)
+    editor._llenar_lista(sesiones)
+    editor.mostrar_documento({"session_id": "a", "markdown": markdown, "edited": True, "edited_at": None,
+                              "folder": str(carpeta), "images": 1})
+    editor._avisar("Copiado para chat: pégalo con Ctrl+V y después arrastra la imagen")
+    editor.layout().activate()
+    editor._escalar_imagenes()
+    destino = RAIZ / "docs" / "img" / "editor.png"
+    editor.grab().save(str(destino))
+    return destino
+
+
 def main() -> int:
     app = QApplication(sys.argv)  # noqa: F841  (Qt necesita la aplicación viva)
     carpeta = Path(tempfile.mkdtemp())
@@ -83,6 +125,9 @@ def main() -> int:
     destino.parent.mkdir(parents=True, exist_ok=True)
     lienzo.save(str(destino))
     sys.stdout.write(f"escrito {destino} ({lienzo.width()}x{lienzo.height()})\n")
+    captura = Path(tempfile.mkdtemp()) / "captura.png"
+    capturas[0].save(str(captura))  # el panel dictando hace de «captura de pantalla» en el ejemplo del editor
+    sys.stdout.write(f"escrito {capturar_editor(captura)}\n")
     return 0
 
 

@@ -16,11 +16,30 @@ from voice_core.hotkeys import parsear
 RAIZ = Path(__file__).resolve().parents[1]
 
 
-def test_migracion_inicial_crea_el_esquema() -> None:
+def test_migraciones_crean_el_esquema() -> None:
     a = Almacen(":memory:")
-    assert a.version() == 1
+    assert a.version() == 2
     a.migrar()  # idempotente
-    assert a.version() == 1
+    assert a.version() == 2
+
+
+def test_una_base_de_f1_se_migra_sola_sin_perder_datos(tmp_path: Path) -> None:
+    """Una base creada con la migración 0001 (F1/F2) gana adjuntos y documento al abrirla."""
+    import sqlite3
+    from importlib.resources import files
+
+    ruta = tmp_path / "vieja.db"
+    con = sqlite3.connect(ruta)
+    sql = (files("voice_core") / "migraciones" / "0001_inicial.sql").read_text(encoding="utf-8")
+    con.executescript(f"{sql}\nPRAGMA user_version = 1;")
+    con.execute("INSERT INTO sessions (id, mode, status, started_at, text) VALUES ('v1', 'dictado', 'final', "
+                "'2026-10-21T10:00:00+00:00', 'texto viejo')")
+    con.commit()
+    con.close()
+    a = Almacen(ruta)
+    assert a.version() == 2
+    s = a.sesion("v1")
+    assert s["text"] == "texto viejo" and s["document"] is None and s["attachments"] == 0
 
 
 def test_sesiones_segmentos_y_colgadas() -> None:

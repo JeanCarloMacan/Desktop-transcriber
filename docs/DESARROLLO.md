@@ -35,10 +35,13 @@ uv sync                                     # .venv con dependencias de ejecuci�
 | `test_segmentador.py` | frases por pausas, parciales, frases largas, ruidos cortos, alucinaciones |
 | `test_motor.py` | elección de dispositivo, búfer de arranque, inactividad, reposo en RAM, cesión de VRAM, fallos del worker |
 | `test_api.py` | contrato REST y WebSocket, 409/404/422, `/shutdown`, `stop_session` |
-| `test_almacen_y_contratos.py` | esquema SQLite, validación de eventos, **deriva de `contracts/`**, atajos |
+| `test_api_documento.py` | capturas (durante y después del dictado, 413/415, descarga) y documento (editar, volver al original, 409 mientras graba, eventos) |
+| `test_documento.py` | lógica pura del documento: imágenes por tiempo, párrafos re-unidos, exportar para chat, agente y texto |
+| `test_almacen_y_contratos.py` | esquema SQLite, migración de una base de F1, validación de eventos, **deriva de `contracts/`**, atajos |
 | `test_gpu_seleccion.py` | GPU por nombre o UUID; ambigüedad = ninguna |
-| `test_overlay_estado.py` | lógica del panel sin Qt |
+| `test_overlay_estado.py` | lógica del panel sin Qt, con las marcas de captura |
 | `test_overlay_panel.py` | panel Qt en plataforma *offscreen*: tamaño, redimensión, rueda, letra, persistencia |
+| `test_overlay_editor.py` | editor *offscreen* (guardar, copiar para chat y agente, insertar, escalar imágenes) y capturador con el portapapeles de Qt |
 | `test_cli_vista.py` | visor de consola en párrafo, con un emulador mínimo de terminal |
 | `test_gpu_e2e.py` (`-m gpu`) | GPU con motor caliente, arranque en frío, CPU y ciclo de reposo en RAM; necesita `datos/f0/audios/dictado_08.wav` (se omite si no está) |
 
@@ -78,7 +81,7 @@ arrancar (`PRAGMA user_version`).
 ## Capturas para la documentación
 
 ```powershell
-.venv\Scripts\python scripts\capturar_panel.py   # regenera docs/img/panel.png con el panel real, sin mostrarlo
+.venv\Scripts\python scripts\capturar_panel.py   # regenera docs/img/panel.png y docs/img/editor.png, sin mostrarlos
 ```
 
 ## Solución de problemas
@@ -91,4 +94,7 @@ arrancar (`PRAGMA user_version`).
 | «No se pudo registrar ctrl+alt+…» | el atajo lo usa otra aplicación | cambiarlo en `[hotkeys]` u `[overlay]` |
 | `WinError 1314` al descargar modelos | caché de Hugging Face con symlinks sin modo desarrollador | usar `--descargar-modelo` (descarga sin symlinks) |
 | El panel no aparece | overlay no arrancado o fuera de pantalla | icono en la bandeja; borrar `datos/overlay.json` |
+| `Ctrl+Alt+S` no abre el recorte | la Herramienta Recortes no está instalada o el atajo lo usa otra aplicación | instalarla desde Microsoft Store; cambiar `[overlay] capturar` |
+| La captura no llega | se canceló el recorte o pasó más de 1 min | volver a pulsar `Ctrl+Alt+S`; el registro dice «Recorte cancelado» |
+| Acentos rotos («nÃºmero») con `Invoke-RestMethod` | Windows PowerShell 5.1 lee el JSON como ISO-8859-1 | PowerShell 7 (`pwsh`), `curl.exe` o Python; el servicio responde en UTF-8 |
 | Registros | — | `datos/overlay.log`, `datos/voice-core.log`, `datos/voice-core.salida.log` |

@@ -34,18 +34,28 @@ class Cliente(QObject):
         threading.Thread(target=self._pedir, args=(operacion, metodo, ruta, cuerpo), daemon=True,
                          name=f"rest-{operacion}").start()
 
-    def pedir_ya(self, metodo: str, ruta: str, cuerpo: dict | None = None, espera_s: float = 5) -> Any:
+    def subir(self, operacion: str, ruta: str, datos: bytes, tipo: str) -> None:
+        """POST de un cuerpo binario (p. ej. una captura PNG) en otro hilo."""
+        threading.Thread(target=self._pedir, args=(operacion, "POST", ruta, None, (datos, tipo)), daemon=True,
+                         name=f"rest-{operacion}").start()
+
+    def pedir_ya(self, metodo: str, ruta: str, cuerpo: dict | None = None, espera_s: float = 5,
+                 binario: tuple[bytes, str] | None = None) -> Any:
         """Petición síncrona (para el arranque y la salida)."""
-        datos = json.dumps(cuerpo).encode() if cuerpo is not None else None
-        req = urllib.request.Request(self._base + ruta, data=datos, method=metodo,
-                                     headers={"Content-Type": "application/json"} if datos else {})
+        if binario is not None:
+            datos, cabeceras = binario[0], {"Content-Type": binario[1]}
+        else:
+            datos = json.dumps(cuerpo).encode() if cuerpo is not None else None
+            cabeceras = {"Content-Type": "application/json"} if datos else {}
+        req = urllib.request.Request(self._base + ruta, data=datos, method=metodo, headers=cabeceras)
         with urllib.request.urlopen(req, timeout=espera_s) as r:
             texto = r.read().decode("utf-8")
             return json.loads(texto) if "json" in r.headers.get("Content-Type", "") else texto
 
-    def _pedir(self, operacion: str, metodo: str, ruta: str, cuerpo: dict | None) -> None:
+    def _pedir(self, operacion: str, metodo: str, ruta: str, cuerpo: dict | None,
+               binario: tuple[bytes, str] | None = None) -> None:
         try:
-            resultado: Any = self.pedir_ya(metodo, ruta, cuerpo)
+            resultado: Any = self.pedir_ya(metodo, ruta, cuerpo, espera_s=30 if binario else 5, binario=binario)
         except urllib.error.HTTPError as e:
             detalle = e.read().decode("utf-8", "replace")
             try:

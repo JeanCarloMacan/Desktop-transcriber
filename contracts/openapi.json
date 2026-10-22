@@ -3,7 +3,7 @@
   "info": {
     "title": "voice-core",
     "description": "Transcripción local en tiempo real. Eventos en /ws y /events.",
-    "version": "0.2.0"
+    "version": "0.3.0"
   },
   "paths": {
     "/health": {
@@ -451,12 +451,15 @@
             "schema": {
               "enum": [
                 "md",
+                "chat",
                 "txt"
               ],
               "type": "string",
+              "description": "md: Markdown con rutas absolutas (agentes) · chat: texto con [Imagen N] · txt: solo texto",
               "default": "md",
               "title": "Format"
-            }
+            },
+            "description": "md: Markdown con rutas absolutas (agentes) · chat: texto con [Imagen N] · txt: solo texto"
           }
         ],
         "responses": {
@@ -473,6 +476,322 @@
           "404": {
             "content": {
               "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{session_id}/attachments": {
+      "post": {
+        "summary": "Adjuntar",
+        "operationId": "adjuntar_sessions__session_id__attachments_post",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "t",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Segundos desde el inicio; por defecto, ahora",
+              "title": "T"
+            },
+            "description": "Segundos desde el inicio; por defecto, ahora"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachmentOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unsupported Media Type"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "image/png": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{session_id}/attachments/{attachment_id}": {
+      "get": {
+        "summary": "Captura",
+        "operationId": "captura_sessions__session_id__attachments__attachment_id__get",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "attachment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Attachment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "image/png": {}
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{session_id}/document": {
+      "get": {
+        "summary": "Leer Documento",
+        "operationId": "leer_documento_sessions__session_id__document_get",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Guardar Documento",
+        "operationId": "guardar_documento_sessions__session_id__document_put",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocumentIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Volver Al Original",
+        "operationId": "volver_al_original_sessions__session_id__document_delete",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorOut"
                 }
@@ -548,6 +867,12 @@
                       },
                       {
                         "$ref": "#/components/schemas/EngineError"
+                      },
+                      {
+                        "$ref": "#/components/schemas/AttachmentAdded"
+                      },
+                      {
+                        "$ref": "#/components/schemas/SessionEdited"
                       }
                     ],
                     "discriminator": {
@@ -558,7 +883,9 @@
                         "segment.final": "#/components/schemas/SegmentFinal",
                         "session.finalized": "#/components/schemas/SessionFinalized",
                         "engine.state": "#/components/schemas/EngineState",
-                        "engine.error": "#/components/schemas/EngineError"
+                        "engine.error": "#/components/schemas/EngineError",
+                        "attachment.added": "#/components/schemas/AttachmentAdded",
+                        "session.edited": "#/components/schemas/SessionEdited"
                       }
                     }
                   },
@@ -583,6 +910,191 @@
   },
   "components": {
     "schemas": {
+      "AttachmentAdded": {
+        "properties": {
+          "seq": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seq",
+            "description": "Orden global; null en eventos efímeros (segment.partial)"
+          },
+          "ts": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ts"
+          },
+          "type": {
+            "type": "string",
+            "const": "attachment.added",
+            "title": "Type",
+            "default": "attachment.added"
+          },
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "attachment": {
+            "$ref": "#/components/schemas/AttachmentOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "seq",
+          "ts",
+          "session_id",
+          "attachment"
+        ],
+        "title": "AttachmentAdded"
+      },
+      "AttachmentOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "kind": {
+            "type": "string",
+            "const": "imagen",
+            "title": "Kind"
+          },
+          "t": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "T",
+            "description": "Segundos desde el inicio de la sesión en que se tomó"
+          },
+          "file": {
+            "type": "string",
+            "title": "File",
+            "description": "Ruta relativa a la carpeta de la sesión, p. ej. capturas/001.png"
+          },
+          "path": {
+            "type": "string",
+            "title": "Path",
+            "description": "Ruta absoluta en disco"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "description": "Ruta de la API para descargarla"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width"
+          },
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "session_id",
+          "kind",
+          "t",
+          "file",
+          "path",
+          "url",
+          "width",
+          "height",
+          "created_at"
+        ],
+        "title": "AttachmentOut"
+      },
+      "DocumentIn": {
+        "properties": {
+          "markdown": {
+            "type": "string",
+            "maxLength": 2000000,
+            "title": "Markdown"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "markdown"
+        ],
+        "title": "DocumentIn"
+      },
+      "DocumentOut": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "markdown": {
+            "type": "string",
+            "title": "Markdown",
+            "description": "Markdown con rutas de imagen relativas a `folder`"
+          },
+          "edited": {
+            "type": "boolean",
+            "title": "Edited"
+          },
+          "edited_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edited At"
+          },
+          "folder": {
+            "type": "string",
+            "title": "Folder",
+            "description": "Carpeta de la sesión: documento.md, capturas/ y audio.wav"
+          },
+          "images": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Images"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "markdown",
+          "edited",
+          "edited_at",
+          "folder",
+          "images"
+        ],
+        "title": "DocumentOut"
+      },
       "EngineError": {
         "properties": {
           "seq": {
@@ -1069,7 +1581,8 @@
           },
           "text": {
             "type": "string",
-            "title": "Text"
+            "title": "Text",
+            "description": "Transcripción tal cual; el texto corregido está en /document"
           },
           "device": {
             "anyOf": [
@@ -1097,6 +1610,26 @@
             ],
             "title": "Model"
           },
+          "attachments": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Attachments",
+            "description": "Número de capturas adjuntas",
+            "default": 0
+          },
+          "edited_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edited At",
+            "description": "Última edición del documento; null si no se editó"
+          },
           "segments": {
             "items": {
               "$ref": "#/components/schemas/SegmentOut"
@@ -1114,6 +1647,14 @@
               }
             ],
             "title": "Audio Path"
+          },
+          "attachment_items": {
+            "items": {
+              "$ref": "#/components/schemas/AttachmentOut"
+            },
+            "type": "array",
+            "title": "Attachment Items",
+            "description": "Capturas adjuntas, por tiempo"
           }
         },
         "type": "object",
@@ -1130,6 +1671,58 @@
           "audio_path"
         ],
         "title": "SessionDetailOut"
+      },
+      "SessionEdited": {
+        "properties": {
+          "seq": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seq",
+            "description": "Orden global; null en eventos efímeros (segment.partial)"
+          },
+          "ts": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ts"
+          },
+          "type": {
+            "type": "string",
+            "const": "session.edited",
+            "title": "Type",
+            "default": "session.edited"
+          },
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "edited_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edited At",
+            "description": "null = se volvió al documento generado"
+          }
+        },
+        "type": "object",
+        "required": [
+          "seq",
+          "ts",
+          "session_id",
+          "edited_at"
+        ],
+        "title": "SessionEdited"
       },
       "SessionFinalized": {
         "properties": {
@@ -1228,7 +1821,8 @@
           },
           "text": {
             "type": "string",
-            "title": "Text"
+            "title": "Text",
+            "description": "Transcripción tal cual; el texto corregido está en /document"
           },
           "device": {
             "anyOf": [
@@ -1255,6 +1849,26 @@
               }
             ],
             "title": "Model"
+          },
+          "attachments": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Attachments",
+            "description": "Número de capturas adjuntas",
+            "default": 0
+          },
+          "edited_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edited At",
+            "description": "Última edición del documento; null si no se editó"
           }
         },
         "type": "object",

@@ -1,6 +1,6 @@
 # Stack tecnológico
 
-Versiones fijadas en `uv.lock` (las de la tabla son las probadas en la versión 0.2.0).
+Versiones fijadas en `uv.lock` (las de la tabla son las probadas en la versión 0.3.0).
 
 ## Runtime
 
@@ -25,8 +25,9 @@ Versiones fijadas en `uv.lock` (las de la tabla son las probadas en la versión 
 | CUDA Toolkit (cuBLAS) | 12.x (probado 12.9) | DLLs de CUDA | ya instalado en el equipo: evita bajar PyTorch (~4 GB) solo por cuBLAS | EULA de NVIDIA |
 | cuDNN 9 | cargador incluido en el wheel de CTranslate2 | — | en el equipo de pruebas no hizo falta instalar nada más | EULA de NVIDIA |
 | [huggingface_hub](https://huggingface.co/docs/huggingface_hub) | 2.2.0 | descarga del modelo | `--descargar-modelo`, a carpetas normales (sin symlinks) | Apache-2.0 |
-| [PySide6-Essentials](https://doc.qt.io/qtforpython-6/) (Qt 6) | 6.12.0 | panel y bandeja | translucidez real, fuentes nítidas en alta densidad, bandeja nativa | LGPL-3.0 |
+| [PySide6-Essentials](https://doc.qt.io/qtforpython-6/) (Qt 6) | 6.12.0 | panel, bandeja y editor | translucidez real, fuentes nítidas en alta densidad, bandeja nativa; `QTextDocument` lee y escribe Markdown con imágenes; arrastre de archivos (`QDrag`) | LGPL-3.0 |
 | Win32 (ctypes) | — | `RegisterHotKey`, `WS_EX_NOACTIVATE`, `keybd_event`, mutex | atajos globales sin permisos especiales; un panel que no roba el foco | — |
+| Recorte de Windows (Herramienta Recortes) | la del sistema | capturas | se abre con el URI `ms-screenclip:` y deja la imagen en el portapapeles; nada que instalar ni mantener | incluida en Windows |
 
 ## Desarrollo
 
@@ -34,7 +35,7 @@ Versiones fijadas en `uv.lock` (las de la tabla son las probadas en la versión 
 |---|---|---|
 | [uv](https://docs.astral.sh/uv/) | 0.12 | entorno, dependencias y bloqueo (`uv.lock`) |
 | hatchling | — | empaquetado (`src/voice_core`, `src/overlay`) |
-| pytest | 9.1 | tests (80+ unitarios sin GPU, 4 de punta a punta con `-m gpu`) |
+| pytest | 9.1 | tests (110 unitarios sin GPU, 4 de punta a punta con `-m gpu`) |
 | httpx | 0.28 | cliente de pruebas de FastAPI |
 | num2words | 0.5 | normalización de cifras para el WER de los spikes |
 
@@ -46,6 +47,7 @@ Versiones fijadas en `uv.lock` (las de la tabla son las probadas en la versión 
 | Interfaz | PySide6 | Tauri (añade Rust y TypeScript), Electron (pesado), tkinter (sin translucidez por píxel, alta densidad borrosa) |
 | Integración | WebSocket + REST con `seq` | broker NATS/Redis (sobredimensionado), webhooks (quedan para F5) |
 | Liberar VRAM | worker en proceso aparte + reposo en RAM | descargar el modelo en el mismo proceso (deja ≈ 240 MB de contexto y no evita el arranque lento) |
+| Capturas | recorte de Windows por `ms-screenclip:` | herramienta de recorte propia (más código; la de Windows ya permite anotar antes de copiar) |
 
 ## Licencias de terceros
 

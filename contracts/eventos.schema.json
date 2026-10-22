@@ -1,5 +1,126 @@
 {
   "$defs": {
+    "AttachmentAdded": {
+      "properties": {
+        "seq": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Orden global; null en eventos efímeros (segment.partial)",
+          "title": "Seq"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "attachment.added",
+          "default": "attachment.added",
+          "title": "Type",
+          "type": "string"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "attachment": {
+          "$ref": "#/$defs/AttachmentOut"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "session_id",
+        "attachment"
+      ],
+      "title": "AttachmentAdded",
+      "type": "object"
+    },
+    "AttachmentOut": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "integer"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "imagen",
+          "title": "Kind",
+          "type": "string"
+        },
+        "t": {
+          "description": "Segundos desde el inicio de la sesión en que se tomó",
+          "minimum": 0,
+          "title": "T",
+          "type": "number"
+        },
+        "file": {
+          "description": "Ruta relativa a la carpeta de la sesión, p. ej. capturas/001.png",
+          "title": "File",
+          "type": "string"
+        },
+        "path": {
+          "description": "Ruta absoluta en disco",
+          "title": "Path",
+          "type": "string"
+        },
+        "url": {
+          "description": "Ruta de la API para descargarla",
+          "title": "Url",
+          "type": "string"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Width"
+        },
+        "height": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Height"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "session_id",
+        "kind",
+        "t",
+        "file",
+        "path",
+        "url",
+        "width",
+        "height",
+        "created_at"
+      ],
+      "title": "AttachmentOut",
+      "type": "object"
+    },
     "EngineError": {
       "properties": {
         "seq": {
@@ -232,6 +353,58 @@
       "title": "SegmentPartial",
       "type": "object"
     },
+    "SessionEdited": {
+      "properties": {
+        "seq": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Orden global; null en eventos efímeros (segment.partial)",
+          "title": "Seq"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "session.edited",
+          "default": "session.edited",
+          "title": "Type",
+          "type": "string"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "edited_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "null = se volvió al documento generado",
+          "title": "Edited At"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "session_id",
+        "edited_at"
+      ],
+      "title": "SessionEdited",
+      "type": "object"
+    },
     "SessionFinalized": {
       "properties": {
         "seq": {
@@ -337,10 +510,12 @@
   },
   "discriminator": {
     "mapping": {
+      "attachment.added": "#/$defs/AttachmentAdded",
       "engine.error": "#/$defs/EngineError",
       "engine.state": "#/$defs/EngineState",
       "segment.final": "#/$defs/SegmentFinal",
       "segment.partial": "#/$defs/SegmentPartial",
+      "session.edited": "#/$defs/SessionEdited",
       "session.finalized": "#/$defs/SessionFinalized",
       "session.started": "#/$defs/SessionStarted"
     },
@@ -364,6 +539,12 @@
     },
     {
       "$ref": "#/$defs/EngineError"
+    },
+    {
+      "$ref": "#/$defs/AttachmentAdded"
+    },
+    {
+      "$ref": "#/$defs/SessionEdited"
     }
   ],
   "title": "Eventos de voice-core"

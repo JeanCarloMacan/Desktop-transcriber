@@ -34,12 +34,15 @@ class Bandeja(QSystemTrayIcon):
     accion = Signal(str)
     modo = Signal(str)
 
-    def __init__(self, tecla_mostrar: str, tecla_pegar: str, tecla_liberar: str, dueño_servicio: bool) -> None:
+    def __init__(self, tecla_mostrar: str, tecla_pegar: str, tecla_liberar: str, tecla_capturar: str,
+                 dueño_servicio: bool) -> None:
         super().__init__()
         self._iconos: dict[str, QIcon] = {}
         menu = QMenu()
         self._acciones: dict[str, QAction] = {}
         for nombre, texto in [("mostrar", f"Mostrar u ocultar el panel\t{tecla_mostrar}"),
+                              ("editor", "Abrir el editor de dictados"),
+                              ("capturar", f"Capturar pantalla para el dictado\t{tecla_capturar}"),
                               ("copiar", "Copiar el último dictado"),
                               ("pegar", f"Pegar el último dictado\t{tecla_pegar}")]:
             self._acciones[nombre] = menu.addAction(texto, lambda n=nombre: self.accion.emit(n))

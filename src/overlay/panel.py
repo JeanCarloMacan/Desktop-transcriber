@@ -23,8 +23,8 @@ from overlay.estado import EstadoPanel
 
 log = logging.getLogger(__name__)
 
-ICONOS = {"copiar": "", "pegar": "", "liberar": "", "ampliar": "", "compactar": "",
-          "ocultar": ""}
+ICONOS = {"copiar": "", "pegar": "", "editor": "", "liberar": "", "ampliar": "",
+          "compactar": "", "ocultar": ""}
 FUENTE_ICONOS = ["Segoe Fluent Icons", "Segoe MDL2 Assets"]
 LINEAS_POR_DEFECTO = {False: 4, True: 14}  # compacto / amplio
 MARGEN = (18, 12, 14, 14)
@@ -40,6 +40,7 @@ QScrollBar::handle:vertical { background: rgba(255, 255, 255, 0.25); border-radi
 QScrollBar::add-line, QScrollBar::sub-line { height: 0; }
 """
 AYUDAS = {"copiar": "Copiar el último dictado", "pegar": "Pegarlo donde está el cursor (Ctrl+Alt+V)",
+          "editor": "Abrir el editor: corregir, ver capturas y copiar para la IA",
           "liberar": "Terminar y liberar la GPU (Ctrl+Alt+L)", "ampliar": "Cambiar a la vista amplia",
           "ocultar": "Ocultar (Ctrl+Alt+O)"}
 CURSORES = {frozenset({"izq"}): Qt.CursorShape.SizeHorCursor, frozenset({"der"}): Qt.CursorShape.SizeHorCursor,

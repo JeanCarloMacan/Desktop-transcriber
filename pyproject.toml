@@ -1,6 +1,6 @@
 [project]
 name = "transcriptor-rt"
-version = "0.2.0"
+version = "0.3.0"
 description = "Dictado local en tiempo real para Windows: panel flotante, bandeja y servicio de voz a texto consumible por API"
 readme = "README.md"
 license = "MIT"

@@ -16,6 +16,7 @@ flowchart TB
         mic(["Micrófono<br/>WASAPI"])
         teclado(["Atajos globales<br/>RegisterHotKey"])
         activa(["Ventana activa"])
+        recorte(["Recorte de Windows<br/>ms-screenclip:"])
     end
 
     subgraph ov["overlay · pythonw (sin consola)"]
@@ -23,22 +24,30 @@ flowchart TB
         est["EstadoPanel<br/>(lógica pura)"]
         pan["Panel Qt<br/>WS_EX_NOACTIVATE"]
         tray["Bandeja"]
+        edi["Editor de dictados"]
+        cap["Capturador<br/>portapapeles"]
         cli["Cliente<br/>WebSocket + REST"]
         ctl --> est --> pan
         ctl --> tray
+        ctl --> edi
+        ctl --> cap
         cli --> ctl
     end
 
     subgraph vc["voice-core · proceso oculto"]
         api["API FastAPI<br/>REST + /ws"]
         ses["GestorSesiones"]
+        doc["Documento<br/>(lógica pura)"]
         mot["Motor<br/>máquina de estados"]
         bus["Bus de eventos<br/>seq creciente"]
-        db[("SQLite<br/>sessions · segments · events")]
+        db[("SQLite<br/>sessions · segments<br/>attachments · events")]
+        disco[("datos/sesiones/id/<br/>audio · capturas · documento.md")]
         fuente["FuenteMicrofono<br/>16 kHz mono"]
         ses --> fuente
         ses --> mot
         ses --> bus
+        ses --> doc
+        ses --> disco
         mot --> bus
         bus --> db
         api --> ses
@@ -57,13 +66,16 @@ flowchart TB
     mot <-- "pipes: audio · reiniciar · vaciar · dormir/despertar<br/>parcial · final · listo · dormido" --> seg
     api <-- "WebSocket /ws · REST" --> cli
     ctl -- "Ctrl+Alt+V: portapapeles + Ctrl+V" --> activa
+    cap -- "Ctrl+Alt+S" --> recorte
+    recorte -- "imagen en el portapapeles" --> cap
 ```
 
 | Módulo | Responsabilidad |
 |---|---|
 | `voice_core/contratos.py` | Modelos Pydantic de la API y de los eventos: **fuente de verdad** del contrato. |
 | `voice_core/api.py` | Rutas REST y WebSocket; ciclo de vida del servidor. |
-| `voice_core/sesiones.py` | Une micrófono, motor, almacén y bus. Una sesión activa a la vez. |
+| `voice_core/sesiones.py` | Une micrófono, motor, almacén y bus. Una sesión activa a la vez. Capturas y documento de cada sesión. |
+| `voice_core/documento.py` | Lógica pura del documento: párrafos e imágenes por tiempo, re-unir párrafos, exportar para chat, agente o texto. |
 | `voice_core/motor.py` | Elige dispositivo, lanza y cierra el worker, estados `apagado → arrancando → dictando ⇄ en_espera → en_reposo`. |
 | `voice_core/worker.py` | El proceso hijo (`spawn`) con el modelo y su manejador en el supervisor. |
 | `voice_core/segmentador.py` | Lógica pura: ventanas de 32 ms, VAD, frases, parciales y finales, filtro de alucinaciones. |
@@ -74,6 +86,8 @@ flowchart TB
 | `voice_core/audio.py` | Micrófono (PortAudio) y fuente de archivo para pruebas. |
 | `overlay/estado.py` | Lógica pura del panel: eventos → qué se muestra y qué acciones tomar. |
 | `overlay/panel.py`, `bandeja.py` | Interfaz Qt. |
+| `overlay/editor.py` | Editor de dictados: lista de sesiones, documento con las imágenes, copiar para chat o agente, arrastrar las imágenes. |
+| `overlay/capturas.py` | Lanza el recorte de Windows y espera la imagen en el portapapeles (o se rinde a los 60 s). |
 | `overlay/cliente.py`, `servicio.py`, `escritorio.py` | Conexión con voice-core, su arranque/cierre y ayudas de Win32. |
 
 ## Un dictado de principio a fin
@@ -118,6 +132,56 @@ sequenceDiagram
     B-->>O: copia al portapapeles · se desvanece a los 15 s
     M-->>B: engine.state · en_espera
 ```
+
+## Capturas y documento
+
+Una captura se ata a **un instante** de la sesión (`t`, en segundos desde el inicio). El documento se arma ordenando
+frases e imágenes por tiempo: cada imagen va tras la última frase que empezó antes de ella, que es la que estabas
+diciendo al pulsar.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor U as Usuario
+    participant O as Overlay
+    participant W as Recorte de Windows
+    participant S as GestorSesiones
+    participant B as Bus + SQLite
+
+    U->>O: Ctrl+Alt+S (dictando, a los 13,4 s)
+    O->>O: recuerda sesión y t · oculta panel y editor
+    O->>W: ms-screenclip:
+    Note over S: el dictado sigue grabando mientras recortas
+    U->>W: recorta un rectángulo
+    W-->>O: imagen en el portapapeles
+    O->>S: POST /sessions/{id}/attachments?t=13.4 (PNG)
+    S->>S: valida la firma PNG · capturas/001.png
+    S->>B: attachment.added
+    B-->>O: «[📷 1]» en el texto en vivo
+    U->>O: Ctrl+Alt+D (fin)
+    S->>S: documento.md = frases e imágenes por tiempo
+    S->>B: session.finalized
+    B-->>O: copia la versión para chat ([Imagen 1])
+```
+
+```mermaid
+flowchart LR
+    gen["Documento generado<br/>segmentos + capturas por tiempo"] --> doc
+    edit["Corrección en el editor<br/>PUT /document"] --> doc
+    doc{{"Documento de la sesión<br/>Markdown, rutas relativas"}}
+    doc --> md["documento.md<br/>en la carpeta de la sesión"]
+    doc -- "export?format=md" --> agente["Agente<br/>rutas absolutas a las PNG"]
+    doc -- "export?format=chat" --> chat["Chat<br/>texto con [Imagen N]<br/>+ arrastrar las PNG"]
+    doc -- "export?format=txt" --> txt["Solo texto"]
+```
+
+- Mientras no se edita, el documento se **genera** cada vez; al guardarlo, se conserva el Markdown editado
+  (`sessions.document`) y `DELETE /document` vuelve al generado. Una captura que llega después de editar se añade al
+  final.
+- El editor muestra el Markdown con `QTextEdit`, que corta las líneas a 80 columnas al exportarlo; el servicio re-une
+  los párrafos al guardar y al exportar.
+- Las imágenes nunca se borran: quitar una imagen del documento la saca de las exportaciones, pero el archivo sigue
+  en `capturas/`.
 
 ## Ciclo de vida del motor
 
@@ -171,6 +235,7 @@ en GPU en modo `auto`, se reintenta en CPU conservando el audio encolado.
 ```mermaid
 erDiagram
     sessions ||--o{ segments : contiene
+    sessions ||--o{ attachments : adjunta
     sessions ||--o{ events : genera
     sessions {
         TEXT id PK
@@ -178,10 +243,12 @@ erDiagram
         TEXT status "grabando, procesando o final"
         TEXT started_at "ISO-8601 UTC"
         TEXT ended_at
-        TEXT text "texto completo"
+        TEXT text "transcripción tal cual"
         TEXT device "cuda o cpu"
         TEXT model
         TEXT audio_path "datos/sesiones/id/audio.wav"
+        TEXT document "Markdown editado, NULL = generado"
+        TEXT edited_at
     }
     segments {
         TEXT session_id FK
@@ -189,6 +256,16 @@ erDiagram
         REAL t0 "segundos desde el inicio"
         REAL t1
         TEXT text
+    }
+    attachments {
+        INTEGER id PK
+        TEXT session_id FK "ON DELETE CASCADE"
+        TEXT kind "imagen"
+        REAL t "segundos desde el inicio"
+        TEXT file "capturas/001.png"
+        INTEGER width
+        INTEGER height
+        TEXT created_at
     }
     events {
         INTEGER seq PK "orden global"
@@ -199,8 +276,10 @@ erDiagram
     }
 ```
 
-- `datos/voice-core.db` (SQLite en modo WAL), `datos/sesiones/<id>/audio.wav` (16 kHz, ≈ 1,9 MB/min, desactivable),
-  `datos/overlay.json` (posición y tamaño del panel) y los registros `datos/*.log`. Nada de `datos/` va a git.
+- `datos/voice-core.db` (SQLite en modo WAL), `datos/overlay.json` (posición y tamaño del panel) y los registros
+  `datos/*.log`. Nada de `datos/` va a git.
+- Cada sesión tiene su carpeta `datos/sesiones/<id>/`: `audio.wav` (16 kHz, ≈ 1,9 MB/min, desactivable),
+  `capturas/NNN.png` y `documento.md` (rutas relativas, para entregar la carpeta entera a un agente).
 - Los eventos `segment.partial` son **efímeros**: solo viajan por WebSocket. El resto se persisten con `seq` y se
   pueden recuperar con `GET /events?after=N` o `WS /ws?after=N` (sin huecos aunque el cliente se reconecte).
 - Tras un cierre brusco, las sesiones que quedaron abiertas pasan a `final` con lo que tengan al arrancar.
@@ -236,6 +315,9 @@ tienen valor por defecto en `voice_core/ajustes.py`; las secciones son `servidor
 | Reposo del modelo en RAM 30 min | apagar a los 2 min (arranques de 5–11 s) | [F2](F2_OVERLAY.md) |
 | Panel PySide6 como cliente de la API | Tauri, Electron, tkinter | [Plan](planes/plan-transcriptor-rt.svg), [F2](F2_OVERLAY.md) |
 | Eventos con `seq` + recuperación por `?after=` | broker (NATS/Redis), webhooks | [Plan](planes/plan-transcriptor-rt.svg) |
+| Capturas con el recorte de Windows (`ms-screenclip:`) | herramienta de recorte propia (más código que mantener; la de Windows ya deja anotar antes de copiar) | [F3](F3_EDITOR.md) |
+| Documento en Markdown con las imágenes ordenadas por tiempo | HTML o un formato propio (Markdown lo leen los agentes y se pega legible en un chat); imágenes todas al final | [F3](F3_EDITOR.md) |
+| Dos salidas para la IA: chat (`[Imagen N]` + arrastrar) y agente (rutas absolutas) | solo una de las dos | [F3](F3_EDITOR.md) |
 
 Diagramas complementarios: [plan general](planes/plan-transcriptor-rt.svg) y
 [recursos, modos y apagado](planes/recursos-y-modos.svg).

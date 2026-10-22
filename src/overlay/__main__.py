@@ -1,7 +1,8 @@
 """Arranque del overlay: `pythonw -m overlay` (o `transcriptor`). Lanza voice-core oculto si hace falta.
 
-El Controlador une el cliente de voice-core, el estado del panel, el panel, la bandeja y los atajos propios
-(mostrar/ocultar y pegar). Todo lo de Qt vive en el hilo principal; atajos y red llegan por señales.
+El Controlador une el cliente de voice-core, el estado del panel, el panel, la bandeja, el editor, las capturas y los
+atajos propios (mostrar/ocultar, pegar y capturar). Todo lo de Qt vive en el hilo principal; atajos y red llegan por
+señales.
 """
 from __future__ import annotations
 
@@ -20,7 +21,9 @@ from PySide6.QtWidgets import QApplication, QSystemTrayIcon
 
 from overlay import escritorio
 from overlay.bandeja import Bandeja
+from overlay.capturas import Capturador
 from overlay.cliente import Cliente
+from overlay.editor import Editor
 from overlay.estado import EstadoPanel
 from overlay.panel import Panel
 from overlay.servicio import ServicioLocal
@@ -37,6 +40,7 @@ def bonita(combo: str) -> str:
 class Controlador(QObject):
     pedir_mostrar = Signal()
     pedir_pegar = Signal()
+    pedir_captura = Signal()
 
     def __init__(self, aj: Ajustes, servicio: ServicioLocal) -> None:
         super().__init__()
@@ -45,16 +49,22 @@ class Controlador(QObject):
         o = aj.overlay
         self.estado = EstadoPanel(copiar_al_terminar=o.copiar_al_terminar, tecla_pegar=bonita(o.pegar))
         self.panel = Panel(o.ancho, o.letra, o.opacidad, aj.carpeta_datos / "overlay.json")
-        self.bandeja = Bandeja(bonita(o.mostrar), bonita(o.pegar), bonita(aj.hotkeys.liberar), servicio.propio)
+        self.bandeja = Bandeja(bonita(o.mostrar), bonita(o.pegar), bonita(aj.hotkeys.liberar), bonita(o.capturar),
+                               servicio.propio)
         self.cliente = Cliente(f"http://{aj.servidor.host}:{aj.servidor.puerto}")
+        self.editor = Editor(self.cliente)
+        self.capturador = Capturador()
         self._a_mano = False  # mostrado con Ctrl+Alt+O o la bandeja: no se oculta solo
         self._raton_dentro = False
         self._sesion_mostrada: str | None = None
+        self._ocultas: list[QObject] = []  # ventanas escondidas durante un recorte
+        self._insertar_en_editor = False
         self._ocultar = QTimer(self, singleShot=True)
         self._ocultar.timeout.connect(self.panel.ocultar)
         self._reloj = QTimer(self, interval=1000)
         self._reloj.timeout.connect(self._tic)
-        self._hotkeys = Hotkeys({o.mostrar: self.pedir_mostrar.emit, o.pegar: self.pedir_pegar.emit})
+        self._hotkeys = Hotkeys({o.mostrar: self.pedir_mostrar.emit, o.pegar: self.pedir_pegar.emit,
+                                 o.capturar: self.pedir_captura.emit})
 
         self.cliente.evento.connect(self._evento)
         self.cliente.conexion.connect(self._conexion)
@@ -65,6 +75,10 @@ class Controlador(QObject):
         self.bandeja.modo.connect(lambda m: self.cliente.pedir("modo", "PUT", "/engine/mode", {"mode": m}))
         self.pedir_mostrar.connect(self._alternar_panel)
         self.pedir_pegar.connect(self._pegar)
+        self.pedir_captura.connect(lambda: self._capturar(None))
+        self.editor.capturar.connect(self._capturar)
+        self.capturador.lista.connect(self._captura_lista)
+        self.capturador.terminada.connect(self._restaurar_ventanas)
 
     def iniciar(self) -> None:
         self._dibujar()
@@ -72,7 +86,8 @@ class Controlador(QObject):
         self.cliente.iniciar()
         self._hotkeys.iniciar()
         self._reloj.start()
-        if self._hotkeys.registradas != [self._aj.overlay.mostrar, self._aj.overlay.pegar]:
+        o = self._aj.overlay
+        if self._hotkeys.registradas != [o.mostrar, o.pegar, o.capturar]:
             self.bandeja.showMessage("Transcriptor RT", "Algún atajo del overlay está ocupado por otra aplicación; "
                                      "revisa config\\voice-core.toml.", QSystemTrayIcon.MessageIcon.Information, 5000)
 
@@ -87,11 +102,21 @@ class Controlador(QObject):
                 self._ocultar.stop()
             elif accion == "copiar":
                 QGuiApplication.clipboard().setText(self.estado.ultimo_texto)
+            elif accion == "copiar_chat":
+                self._pedir_texto_chat("texto_chat")
+            elif accion == "actualizar_texto":
+                self._pedir_texto_chat("texto_editado")
             elif accion == "programar_ocultar":
                 self._programar_ocultar()
             elif accion == "consultar_motor":
                 self.cliente.pedir("motor", "GET", "/engine")
+        self.editor.al_evento(ev)
         self._dibujar()
+
+    def _pedir_texto_chat(self, operacion: str) -> None:
+        """Texto de la última sesión en versión chat ([Imagen N], ediciones incluidas)."""
+        if self.estado.sesion_id:
+            self.cliente.pedir(operacion, "GET", f"/sessions/{self.estado.sesion_id}/export?format=chat")
 
     def _conexion(self, ok: bool) -> None:
         self.estado.fijar_conexion(ok)
@@ -103,14 +128,71 @@ class Controlador(QObject):
 
     def _respuesta(self, operacion: str, resultado: object) -> None:
         if isinstance(resultado, Exception):
-            if operacion in ("liberar", "modo"):
+            if operacion in ("liberar", "modo", "captura"):
                 self.estado.aviso, self.estado.aviso_error = f"No se pudo: {resultado}", True
                 self.panel.mostrar()
+            if operacion == "captura":
+                self.editor.captura_cancelada()
         elif operacion == "motor" and isinstance(resultado, dict):
             self.estado.fijar_motor(resultado, time.monotonic())
         elif operacion == "ultimo" and isinstance(resultado, list) and resultado:
-            self.estado.cargar_ultimo(resultado[0].get("text", ""))
+            s = resultado[0]
+            self.estado.cargar_ultimo(s.get("text", ""), s.get("id"))
+            if s.get("attachments") or s.get("edited_at"):
+                self._pedir_texto_chat("texto_editado")
+        elif operacion in ("texto_chat", "texto_editado") and isinstance(resultado, str) and resultado.strip():
+            self.estado.ultimo_texto = resultado.strip()
+            if operacion == "texto_chat":
+                QGuiApplication.clipboard().setText(self.estado.ultimo_texto)
+        elif operacion == "captura" and isinstance(resultado, dict):
+            if self._insertar_en_editor:
+                self._insertar_en_editor = False
+                self.editor.insertar_imagen(resultado)
         self._dibujar()
+
+    # ------------------------------------------------------------ capturas
+
+    def _capturar(self, sesion_editor: str | None) -> None:
+        """Recorte de Windows → captura adjunta. Desde el editor, va a su sesión y al cursor; con el atajo, al
+        dictado en curso en el instante de pulsar, o si no hay dictado, al último."""
+        if self.capturador.esperando:
+            return
+        t: float | None = None
+        if sesion_editor is not None:
+            sesion = sesion_editor
+        elif self.estado.grabando and self.estado.sesion_id and self.estado.inicio is not None:
+            sesion = self.estado.sesion_id
+            t = max(0.0, (datetime.now(UTC) - self.estado.inicio).total_seconds())
+        else:
+            sesion = self.estado.sesion_id
+        if not sesion:
+            self.estado.aviso, self.estado.aviso_error = "Todavía no hay ningún dictado al que añadir la captura", True
+            self.panel.mostrar()
+            self._dibujar()
+            return
+        self._insertar_en_editor = sesion_editor is not None
+        self._ocultas = [v for v in (self.panel, self.editor) if v.isVisible()]
+        for ventana in self._ocultas:
+            ventana.hide()  # que no tapen lo que quieres recortar
+        if not self.capturador.capturar({"sesion": sesion, "t": t}):
+            self._restaurar_ventanas(con_imagen=False)
+
+    def _captura_lista(self, png: bytes, contexto: dict) -> None:
+        ruta = f"/sessions/{contexto['sesion']}/attachments"
+        if contexto.get("t") is not None:
+            ruta += f"?t={contexto['t']:.2f}"
+        self.cliente.subir("captura", ruta, png, "image/png")
+
+    def _restaurar_ventanas(self, con_imagen: bool) -> None:
+        ocultas, self._ocultas = self._ocultas, []
+        for ventana in ocultas:
+            ventana.show()
+        if self.editor in ocultas:
+            self.editor.raise_()
+            self.editor.activateWindow()
+        if not con_imagen:  # recorte cancelado: nada que subir ni insertar
+            self._insertar_en_editor = False
+            self.editor.captura_cancelada()
 
     # ------------------------------------------------------------ acciones
 
@@ -128,6 +210,10 @@ class Controlador(QObject):
             self.panel.ocultar()
         elif nombre == "mostrar":
             self._alternar_panel()
+        elif nombre == "editor":
+            self.editor.abrir(self.estado.sesion_id)
+        elif nombre == "capturar":
+            self._capturar(None)
         elif nombre == "carpeta":
             os.startfile(self._aj.carpeta_datos)  # noqa: S606
         elif nombre == "log":

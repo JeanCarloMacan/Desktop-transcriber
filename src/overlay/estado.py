@@ -1,7 +1,8 @@
 """Estado del panel: traduce los eventos de voice-core en lo que el panel muestra y hace. Sin Qt, para poder probarlo.
 
 `aplicar(evento)` actualiza el estado y devuelve acciones para la interfaz:
-  mostrar · copiar (texto de la sesión recién terminada) · programar_ocultar · cancelar_ocultar · consultar_motor
+  mostrar · copiar (texto de la sesión recién terminada) · copiar_chat (pedir el texto con [Imagen N] y copiarlo) ·
+  actualizar_texto (la última sesión se editó) · programar_ocultar · cancelar_ocultar · consultar_motor
 """
 from __future__ import annotations
 
@@ -10,10 +11,13 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Literal
 
-Accion = Literal["mostrar", "copiar", "programar_ocultar", "cancelar_ocultar", "consultar_motor"]
+Accion = Literal["mostrar", "copiar", "copiar_chat", "actualizar_texto", "programar_ocultar", "cancelar_ocultar",
+                 "consultar_motor"]
 
 COLOR_FINAL = "#F3F4F6"
 COLOR_PARCIAL = "#9CA3AF"
+COLOR_CAPTURA = "#A78BFA"
+MARCA_CAPTURA = "\x00"  # prefijo de los marcadores de captura dentro de `finales`
 COLORES_PUNTO = {"dictando": "#EF4444", "arrancando": "#F59E0B", "en_espera": "#60A5FA", "en_reposo": "#A78BFA",
                  "apagado": "#6B7280"}
 NOMBRE_DISPOSITIVO = {"cuda": "5080", "cpu": "CPU"}
@@ -38,6 +42,7 @@ class EstadoPanel:
     grabando: bool = False
     finales: list[str] = field(default_factory=list)
     parcial: str = ""
+    capturas: int = 0
     ultimo_texto: str = ""
     aviso: str = ""
     aviso_error: bool = False
@@ -55,9 +60,18 @@ class EstadoPanel:
         if tipo == "session.started":
             self.sesion_id, self.modo_sesion = ev["session_id"], ev["mode"]
             self.inicio = datetime.fromisoformat(ev["ts"])
-            self.grabando, self.finales, self.parcial = True, [], ""
+            self.grabando, self.finales, self.parcial, self.capturas = True, [], "", 0
             self._avisar("")
             return ["mostrar", "cancelar_ocultar"]
+        if tipo == "attachment.added" and ev.get("session_id") == self.sesion_id:
+            self.capturas += 1
+            if self.grabando:
+                self.finales.append(f"{MARCA_CAPTURA}{self.capturas}")
+                return []
+            self._avisar(f"Captura {self.capturas} añadida al último dictado · ábrela en el editor (✎)")
+            return ["mostrar", "programar_ocultar"]
+        if tipo == "session.edited" and ev.get("session_id") == self.sesion_id and not self.grabando:
+            return ["actualizar_texto"]
         if tipo == "segment.partial" and ev.get("session_id") == self.sesion_id and self.grabando:
             self.parcial = ev["text"]
             return []
@@ -73,10 +87,14 @@ class EstadoPanel:
                 self.ultimo_texto = texto
                 self.finales = [texto]
                 if self.copiar_al_terminar:
-                    acciones.append("copiar")
+                    # Con capturas se copia la versión para chat ([Imagen N]); la pide el controlador al servicio.
+                    acciones.append("copiar_chat" if self.capturas else "copiar")
                     self._avisar(f"Copiado · {self.tecla_pegar} para pegarlo donde esté el cursor")
                 else:
                     self._avisar(f"Listo · {self.tecla_pegar} para pegarlo")
+                if self.capturas:
+                    plural = "captura" if self.capturas == 1 else "capturas"
+                    self.aviso += f" · {self.capturas} {plural}: arrástralas desde el editor (✎)"
             else:
                 self._avisar("No se reconoció voz en esta sesión")
             return [*acciones, "programar_ocultar"]
@@ -102,9 +120,13 @@ class EstadoPanel:
         reposo = motor.get("rest_in_s")
         self._reposo_en = ahora + reposo if reposo is not None else None
 
-    def cargar_ultimo(self, texto: str) -> None:
-        """Al arrancar el overlay, el último dictado guardado queda listo para Ctrl+Alt+O y Ctrl+Alt+V."""
-        if texto and not self.grabando:
+    def cargar_ultimo(self, texto: str, sesion_id: str | None = None) -> None:
+        """Al arrancar el overlay, el último dictado guardado queda listo para Ctrl+Alt+O, Ctrl+Alt+V y capturas."""
+        if self.grabando:
+            return
+        if sesion_id:
+            self.sesion_id = sesion_id
+        if texto:
             self.ultimo_texto = texto
             self.finales = [texto]
 
@@ -115,7 +137,7 @@ class EstadoPanel:
 
     @property
     def parrafo(self) -> str:
-        return " ".join(self.finales)
+        return " ".join(f for f in self.finales if not f.startswith(MARCA_CAPTURA))
 
     @property
     def color_punto(self) -> str:
@@ -125,11 +147,17 @@ class EstadoPanel:
             COLORES_PUNTO.get(self.motor, COLORES_PUNTO["apagado"])
 
     def html(self) -> str:
-        cuerpo = f'<span style="color:{COLOR_FINAL}">{html.escape(self.parrafo)}</span>'
+        trozos = []
+        for f in self.finales:
+            if f.startswith(MARCA_CAPTURA):
+                trozos.append(f'<span style="color:{COLOR_CAPTURA}">[📷 {html.escape(f[1:])}]</span>')
+            else:
+                trozos.append(f'<span style="color:{COLOR_FINAL}">{html.escape(f)}</span>')
+        cuerpo = " ".join(trozos)
         if self.parcial:
-            separador = " " if self.parrafo else ""
+            separador = " " if self.finales else ""
             cuerpo += f'{separador}<span style="color:{COLOR_PARCIAL}; font-style:italic">{html.escape(self.parcial)}…</span>'
-        if not self.parrafo and not self.parcial:
+        if not self.finales and not self.parcial:
             pista = "Escuchando… habla cuando quieras." if self.grabando else "Aún no hay dictados."
             cuerpo = f'<span style="color:{COLOR_PARCIAL}">{pista}</span>'
         return cuerpo

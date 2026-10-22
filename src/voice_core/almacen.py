@@ -82,8 +82,11 @@ class Almacen:
         self._ejecutar("UPDATE sessions SET status = 'final', ended_at = ?, text = ?, audio_path = ? WHERE id = ?",
                        (fin, texto, audio, id_))
 
+    _SESIONES = ("SELECT s.*, (SELECT COUNT(*) FROM attachments a WHERE a.session_id = s.id) AS attachments "
+                 "FROM sessions s")
+
     def sesion(self, id_: str) -> Fila | None:
-        return self._uno("SELECT * FROM sessions WHERE id = ?", (id_,))
+        return self._uno(f"{self._SESIONES} WHERE s.id = ?", (id_,))
 
     def segmentos(self, id_: str) -> list[Fila]:
         return self._todos("SELECT idx AS \"index\", t0, t1, text FROM segments WHERE session_id = ? ORDER BY idx",
@@ -91,9 +94,26 @@ class Almacen:
 
     def listar_sesiones(self, limite: int, estado: str | None = None) -> list[Fila]:
         if estado:
-            return self._todos("SELECT * FROM sessions WHERE status = ? ORDER BY started_at DESC LIMIT ?",
+            return self._todos(f"{self._SESIONES} WHERE s.status = ? ORDER BY s.started_at DESC LIMIT ?",
                                (estado, limite))
-        return self._todos("SELECT * FROM sessions ORDER BY started_at DESC LIMIT ?", (limite,))
+        return self._todos(f"{self._SESIONES} ORDER BY s.started_at DESC LIMIT ?", (limite,))
+
+    # ------------------------------------------------------------ adjuntos y documento
+
+    def agregar_adjunto(self, sesion: str, t: float, archivo: str, ancho: int | None, alto: int | None,
+                        creado: str) -> Fila:
+        cur = self._ejecutar("INSERT INTO attachments (session_id, kind, t, file, width, height, created_at) "
+                             "VALUES (?, 'imagen', ?, ?, ?, ?, ?)", (sesion, max(0.0, t), archivo, ancho, alto, creado))
+        return self.adjunto(sesion, int(cur.lastrowid))  # type: ignore[return-value]
+
+    def adjunto(self, sesion: str, id_: int) -> Fila | None:
+        return self._uno("SELECT * FROM attachments WHERE session_id = ? AND id = ?", (sesion, id_))
+
+    def adjuntos(self, sesion: str) -> list[Fila]:
+        return self._todos("SELECT * FROM attachments WHERE session_id = ? ORDER BY t, id", (sesion,))
+
+    def guardar_documento(self, sesion: str, markdown: str | None, editado: str | None) -> None:
+        self._ejecutar("UPDATE sessions SET document = ?, edited_at = ? WHERE id = ?", (markdown, editado, sesion))
 
     def cerrar_colgadas(self, fin: str) -> int:
         """Tras un cierre brusco: las sesiones que quedaron grabando o procesando pasan a final con lo que tengan."""

@@ -6,19 +6,19 @@ import logging
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import Literal
-
 from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect, status
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 
 from voice_core import __version__
 from voice_core.ajustes import Ajustes
 from voice_core.almacen import Almacen
 from voice_core.bus import Bus, ahora
-from voice_core.contratos import (EngineModeIn, EngineStatusOut, ErrorOut, EstadoSesion, Evento, HealthOut,
-                                  SessionDetailOut, SessionOut, SessionStartIn, ShutdownOut)
+from voice_core.contratos import (AttachmentOut, DocumentIn, DocumentOut, EngineModeIn, EngineStatusOut, ErrorOut,
+                                  EstadoSesion, Evento, FormatoExport, HealthOut, SessionDetailOut, SessionOut,
+                                  SessionStartIn, ShutdownOut)
 from voice_core.motor import Motor, MotorOcupado, MotorPausado, SinEspacioGpu
-from voice_core.sesiones import GestorSesiones, SesionEnCurso, SesionNoActiva, SesionNoEncontrada
+from voice_core.sesiones import (MAX_ADJUNTO, AdjuntoDemasiadoGrande, AdjuntoInvalido, AdjuntoNoEncontrado,
+                                 GestorSesiones, SesionEnCurso, SesionNoActiva, SesionNoEncontrada)
 
 log = logging.getLogger(__name__)
 
@@ -65,6 +65,18 @@ def crear_app(sv: Servicios) -> FastAPI:
     @app.exception_handler(SesionNoEncontrada)
     async def _404(request: Request, exc: SesionNoEncontrada) -> JSONResponse:
         return JSONResponse(status_code=404, content={"detail": f"Sesión no encontrada: {exc}"})
+
+    @app.exception_handler(AdjuntoNoEncontrado)
+    async def _404_adjunto(request: Request, exc: AdjuntoNoEncontrado) -> JSONResponse:
+        return JSONResponse(status_code=404, content={"detail": f"Captura no encontrada: {exc}"})
+
+    @app.exception_handler(AdjuntoInvalido)
+    async def _415(request: Request, exc: AdjuntoInvalido) -> JSONResponse:
+        return JSONResponse(status_code=415, content={"detail": str(exc)})
+
+    @app.exception_handler(AdjuntoDemasiadoGrande)
+    async def _413(request: Request, exc: AdjuntoDemasiadoGrande) -> JSONResponse:
+        return JSONResponse(status_code=413, content={"detail": str(exc)})
 
     for clase in CONFLICTOS:
         @app.exception_handler(clase)
@@ -134,13 +146,50 @@ def crear_app(sv: Servicios) -> FastAPI:
     @app.get("/sessions/{session_id}", response_model=SessionDetailOut, responses=RESPUESTAS_404)
     def detalle(session_id: str) -> SessionDetailOut:
         s = sesion_o_404(session_id)
-        return SessionDetailOut.model_validate({**s, "segments": sv.almacen.segmentos(session_id)})
+        adjuntos = [sv.sesiones.adjunto_out(f) for f in sv.almacen.adjuntos(session_id)]
+        return SessionDetailOut.model_validate({**s, "segments": sv.almacen.segmentos(session_id),
+                                                "attachment_items": adjuntos})
 
     @app.get("/sessions/{session_id}/export", response_class=PlainTextResponse, responses=RESPUESTAS_404)
-    def exportar(session_id: str, format_: Literal["md", "txt"] = Query("md", alias="format")) -> PlainTextResponse:
+    def exportar(session_id: str, format_: FormatoExport = Query("md", alias="format",
+                 description="md: Markdown con rutas absolutas (agentes) · chat: texto con [Imagen N] · txt: solo texto")
+                 ) -> PlainTextResponse:
         texto = sv.sesiones.exportar(session_id, format_)
         tipo = "text/markdown; charset=utf-8" if format_ == "md" else "text/plain; charset=utf-8"
         return PlainTextResponse(texto, media_type=tipo)
+
+    # ------------------------------------------------------------ capturas y documento
+
+    @app.post("/sessions/{session_id}/attachments", response_model=AttachmentOut,
+              status_code=status.HTTP_201_CREATED,
+              responses={**RESPUESTAS_404, 413: {"model": ErrorOut}, 415: {"model": ErrorOut}},
+              openapi_extra={"requestBody": {"required": True, "content": {
+                  "image/png": {"schema": {"type": "string", "format": "binary"}}}}})
+    async def adjuntar(session_id: str, request: Request,
+                       t: float | None = Query(None, ge=0, description="Segundos desde el inicio; por defecto, ahora")
+                       ) -> AttachmentOut:
+        cuerpo = await request.body()
+        if len(cuerpo) > MAX_ADJUNTO:
+            raise AdjuntoDemasiadoGrande(f"La imagen pesa {len(cuerpo) / 2**20:.1f} MB (máximo 25 MB)")
+        return sv.sesiones.agregar_adjunto(session_id, cuerpo, t)
+
+    @app.get("/sessions/{session_id}/attachments/{attachment_id}", response_class=FileResponse,
+             responses={200: {"content": {"image/png": {}}}, **RESPUESTAS_404})
+    def captura(session_id: str, attachment_id: int) -> FileResponse:
+        return FileResponse(sv.sesiones.ruta_adjunto(session_id, attachment_id), media_type="image/png")
+
+    @app.get("/sessions/{session_id}/document", response_model=DocumentOut, responses=RESPUESTAS_404)
+    def leer_documento(session_id: str) -> DocumentOut:
+        return sv.sesiones.documento(session_id)
+
+    @app.put("/sessions/{session_id}/document", response_model=DocumentOut,
+             responses={**RESPUESTAS_404, **RESPUESTAS_409})
+    def guardar_documento(session_id: str, cuerpo: DocumentIn) -> DocumentOut:
+        return sv.sesiones.guardar_documento(session_id, cuerpo.markdown)
+
+    @app.delete("/sessions/{session_id}/document", response_model=DocumentOut, responses=RESPUESTAS_404)
+    def volver_al_original(session_id: str) -> DocumentOut:
+        return sv.sesiones.borrar_documento(session_id)
 
     # ------------------------------------------------------------ eventos
 

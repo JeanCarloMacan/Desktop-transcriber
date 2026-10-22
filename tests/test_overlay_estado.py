@@ -107,5 +107,36 @@ def test_el_html_escapa_el_texto() -> None:
 
 def test_cargar_ultimo_dictado_al_arrancar() -> None:
     e = panel_conectado()
-    e.cargar_ultimo("Texto de ayer.")
-    assert e.ultimo_texto == "Texto de ayer." and e.parrafo == "Texto de ayer."
+    e.cargar_ultimo("Texto de ayer.", "s0")
+    assert e.ultimo_texto == "Texto de ayer." and e.parrafo == "Texto de ayer." and e.sesion_id == "s0"
+
+
+def test_capturas_durante_el_dictado_se_marcan_en_el_texto_y_cambian_la_copia() -> None:
+    e = panel_conectado()
+    e.aplicar(ev("session.started", session_id="s1", mode="dictado"))
+    e.aplicar(ev("segment.final", session_id="s1", index=0, t0=0, t1=2, text="La leyenda tapa la curva."))
+    assert e.aplicar(ev("attachment.added", session_id="s1", attachment={"id": 1})) == []
+    e.aplicar(ev("segment.final", session_id="s1", index=1, t0=3, t1=5, text="Y el eje X no coincide."))
+    assert "[📷 1]" in e.html() and "📷" not in e.parrafo
+    assert e.parrafo == "La leyenda tapa la curva. Y el eje X no coincide."
+    acciones = e.aplicar(ev("session.finalized", session_id="s1", text="La leyenda tapa la curva. Y el eje X…",
+                            duration_s=9, segments=2))
+    assert acciones == ["copiar_chat", "programar_ocultar"]
+    assert "1 captura" in e.aviso and "editor" in e.aviso
+
+
+def test_captura_despues_de_terminar_avisa_en_el_panel() -> None:
+    e = panel_conectado()
+    e.aplicar(ev("session.started", session_id="s1", mode="dictado"))
+    e.aplicar(ev("session.finalized", session_id="s1", text="Hola.", duration_s=2, segments=1))
+    assert e.aplicar(ev("attachment.added", session_id="s1", attachment={"id": 1})) == ["mostrar", "programar_ocultar"]
+    assert "Captura 1" in e.aviso
+    assert e.aplicar(ev("attachment.added", session_id="otra", attachment={"id": 2})) == []
+
+
+def test_editar_la_ultima_sesion_pide_actualizar_el_texto_para_pegar() -> None:
+    e = panel_conectado()
+    e.aplicar(ev("session.started", session_id="s1", mode="dictado"))
+    e.aplicar(ev("session.finalized", session_id="s1", text="Hola.", duration_s=2, segments=1))
+    assert e.aplicar(ev("session.edited", session_id="s1", edited_at=T0.isoformat())) == ["actualizar_texto"]
+    assert e.aplicar(ev("session.edited", session_id="otra", edited_at=None)) == []

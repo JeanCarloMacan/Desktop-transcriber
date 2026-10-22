@@ -63,14 +63,47 @@ class SessionOut(BaseModel):
     status: EstadoSesion
     started_at: datetime
     ended_at: datetime | None
-    text: str
+    text: str = Field(description="Transcripción tal cual; el texto corregido está en /document")
     device: Dispositivo | None
     model: str | None
+    attachments: int = Field(0, ge=0, description="Número de capturas adjuntas")
+    edited_at: datetime | None = Field(None, description="Última edición del documento; null si no se editó")
+
+
+class AttachmentOut(BaseModel):
+    id: int
+    session_id: str
+    kind: Literal["imagen"]
+    t: float = Field(ge=0, description="Segundos desde el inicio de la sesión en que se tomó")
+    file: str = Field(description="Ruta relativa a la carpeta de la sesión, p. ej. capturas/001.png")
+    path: str = Field(description="Ruta absoluta en disco")
+    url: str = Field(description="Ruta de la API para descargarla")
+    width: int | None
+    height: int | None
+    created_at: datetime
 
 
 class SessionDetailOut(SessionOut):
     segments: list[SegmentOut]
     audio_path: str | None
+    attachment_items: list[AttachmentOut] = Field(default_factory=list, description="Capturas adjuntas, por tiempo")
+
+
+class DocumentIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    markdown: str = Field(max_length=2_000_000)
+
+
+class DocumentOut(BaseModel):
+    session_id: str
+    markdown: str = Field(description="Markdown con rutas de imagen relativas a `folder`")
+    edited: bool
+    edited_at: datetime | None
+    folder: str = Field(description="Carpeta de la sesión: documento.md, capturas/ y audio.wav")
+    images: int = Field(ge=0)
+
+
+FormatoExport = Literal["md", "chat", "txt"]
 
 
 class ErrorOut(BaseModel):
@@ -131,8 +164,21 @@ class EngineError(_EventoBase):
     session_id: str | None = None
 
 
+class AttachmentAdded(_EventoBase):
+    type: Literal["attachment.added"] = "attachment.added"
+    session_id: str
+    attachment: AttachmentOut
+
+
+class SessionEdited(_EventoBase):
+    type: Literal["session.edited"] = "session.edited"
+    session_id: str
+    edited_at: datetime | None = Field(description="null = se volvió al documento generado")
+
+
 Evento = Annotated[
-    Union[SessionStarted, SegmentPartial, SegmentFinal, SessionFinalized, EngineState, EngineError],
+    Union[SessionStarted, SegmentPartial, SegmentFinal, SessionFinalized, EngineState, EngineError, AttachmentAdded,
+          SessionEdited],
     Field(discriminator="type"),
 ]
 EVENTO = TypeAdapter(Evento)

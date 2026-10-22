@@ -85,6 +85,7 @@ class AjustesOverlay(_Seccion):
     opacidad: float = Field(0.94, gt=0.2, le=1.0)
     mostrar: str = "ctrl+alt+o"
     pegar: str = "ctrl+alt+v"
+    capturar: str = "ctrl+alt+s"
 
 
 class Ajustes(_Seccion):

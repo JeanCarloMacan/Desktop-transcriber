@@ -2,6 +2,28 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); versiones con [SemVer](https://semver.org/lang/es/).
 
+## [0.3.0] · 2026-10-21 · F3
+
+### Añadido
+- `Ctrl+Alt+S` abre el recorte de Windows y adjunta la imagen al dictado en curso, en el instante en que pulsaste (sin
+  dictado activo, al último). El panel marca `[📷 N]` en el texto en vivo.
+- Documento de cada sesión en Markdown con las capturas tras la frase que se estaba diciendo; se escribe en
+  `datos/sesiones/<id>/documento.md` junto a `capturas/NNN.png`.
+- Editor de dictados (botón ✎ del panel o menú de la bandeja): lista de sesiones, corrección con las imágenes en su
+  sitio, guardado automático, «Volver al original» e «Insertar captura» en el cursor.
+- «Copiar para chat» (texto con `[Imagen N]` + arrastrar todas las imágenes a la vez) y «Copiar para agente» (Markdown
+  con rutas absolutas). Al terminar un dictado con capturas se copia la versión para chat; `Ctrl+Alt+V` pega la
+  corregida si la hay.
+- API: `POST/GET /sessions/{id}/attachments`, `GET/PUT/DELETE /sessions/{id}/document`, `export?format=chat`; campos
+  `attachments` y `edited_at` en `SessionOut` y `attachment_items` en el detalle; eventos `attachment.added` y
+  `session.edited`.
+- Migración `0002_adjuntos_documento.sql` (tabla `attachments`, columnas `document` y `edited_at`), aplicada sola sobre
+  las bases anteriores.
+
+### Corregido
+- Una captura insertada con el cursor en el título heredaba el formato de encabezado.
+- Los párrafos guardados desde el editor llegaban partidos en líneas de 80 caracteres.
+
 ## [0.2.0] · 2026-10-21 · F2
 
 ### Añadido
