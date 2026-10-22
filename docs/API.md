@@ -1,23 +1,27 @@
-# API de voice-core
+# API
 
-Servicio local en `http://127.0.0.1:8765` (solo escucha en la propia máquina y no tiene autenticación). Mientras corre,
-la documentación interactiva generada por FastAPI está en <http://127.0.0.1:8765/docs>.
+Dos servicios locales (solo escuchan en la propia máquina y no tienen autenticación). Mientras corren, la
+documentación interactiva generada por FastAPI está en `/docs` de cada uno.
 
-Contratos formales, generados desde `src/voice_core/contratos.py`:
-[`contracts/openapi.json`](../contracts/openapi.json) (REST) y
-[`contracts/eventos.schema.json`](../contracts/eventos.schema.json) (eventos).
+| Servicio | Dirección | Qué hace | Contratos formales |
+|---|---|---|---|
+| **voice-core** | `http://127.0.0.1:8765` | dictados, capturas y documento de cada sesión | [`openapi.json`](../contracts/openapi.json) · [`eventos.schema.json`](../contracts/eventos.schema.json), desde `src/voice_core/contratos.py` |
+| **tasks-service** | `http://127.0.0.1:8766` | tareas por categoría extraídas de los dictados con LM Studio | [`tareas.openapi.json`](../contracts/tareas.openapi.json) · [`tareas.eventos.schema.json`](../contracts/tareas.eventos.schema.json), desde `src/tasks_service/contratos.py` |
 
-## REST
+Los errores propios llegan como `{"detail": "…"}`; los 422 de validación, con el formato estándar de FastAPI (una
+lista en `detail`).
+
+## voice-core: REST
 
 | Método y ruta | Cuerpo / parámetros | Respuesta | Errores |
 |---|---|---|---|
-| `GET /health` | — | `{"status": "ok", "version": "0.3.0"}` | — |
+| `GET /health` | — | `{"status": "ok", "version": "0.4.0"}` | — |
 | `GET /engine` | — | `EngineStatusOut` | — |
 | `PUT /engine/mode` | `{"mode": "auto" \| "gpu" \| "cpu" \| "pausado"}` | `EngineStatusOut` | 422 |
 | `POST /engine/release` | `?stop_session=true` para cerrar antes el dictado en curso | `EngineStatusOut` | 409 si está dictando y no se pidió `stop_session` |
 | `POST /sessions` | `{"mode": "dictado" \| "tarea"}` | `SessionOut` (201) | 409: ya hay sesión, motor en pausa o sin GPU en modo `gpu` |
 | `POST /sessions/toggle` | `{"mode": …}` | `SessionOut` | 409 |
-| `POST /sessions/{id}/stop` | — | `SessionOut` (`procesando`; el texto final llega con `session.finalized`) | 404, 409 |
+| `POST /sessions/{id}/stop` | — | `SessionOut` (`procesando`; publica `session.stopped` y el texto final llega con `session.finalized`) | 404, 409 |
 | `GET /sessions` | `?limit=20&status=final` | `list[SessionOut]` (más recientes primero) | 422 |
 | `GET /sessions/{id}` | — | `SessionDetailOut` (con `segments`, `audio_path` y `attachment_items`) | 404 |
 | `GET /sessions/{id}/export` | `?format=md \| chat \| txt` | texto (ver [Exportar](#exportar)) | 404, 422 |
@@ -53,7 +57,7 @@ a RAM; `auto_off_in_s` = hasta el apagado completo; `vram_*` = la GPU permitida 
 
 ```json
 {
-  "id": "07e4b7d953e4",
+  "id": "5b2e8c0d41a7",
   "mode": "dictado",
   "status": "final",
   "started_at": "2026-10-21T21:52:32.483000+00:00",
@@ -120,9 +124,9 @@ final del documento editado.
 | `chat` | pegar en un chat y arrastrar las imágenes aparte | sin título; cada imagen como `[Imagen N]` |
 | `txt` | solo texto | sin título ni imágenes |
 
-Todas parten del documento corregido si lo hay.
+Todas parten del documento corregido si lo hay. tasks-service usa `txt` para leer el dictado que analiza.
 
-## Eventos
+## voice-core: eventos
 
 Todos llevan `type`, `ts` (UTC) y `seq`. Los persistentes tienen `seq` creciente y sin huecos; `segment.partial` es
 **efímero** (`seq: null`) y solo viaja por WebSocket.
@@ -132,7 +136,8 @@ Todos llevan `type`, `ts` (UTC) y `seq`. Los persistentes tienen `seq` creciente
 | `session.started` | `session_id`, `mode` | al empezar a grabar |
 | `segment.partial` | `session_id`, `text` | cada ~0,4 s mientras hablas (solo en GPU); reemplaza al anterior |
 | `segment.final` | `session_id`, `index`, `t0`, `t1`, `text` | tras cada pausa de ~1 s |
-| `session.finalized` | `session_id`, `text`, `duration_s`, `segments` | al cerrar la sesión, con el texto completo |
+| `session.stopped` | `session_id` | al cerrar el micrófono (al parar el dictado): ya no se escucha, aunque el modelo aún esté cargando |
+| `session.finalized` | `session_id`, `text`, `duration_s`, `segments` | al terminar de transcribir lo grabado, con el texto completo |
 | `engine.state` | `state`, `mode`, `device`, `reason` | en cada cambio de estado del motor |
 | `engine.error` | `message`, `session_id?` | errores del motor o del micrófono |
 | `attachment.added` | `session_id`, `attachment` (`AttachmentOut`) | al subir una captura |
@@ -140,26 +145,192 @@ Todos llevan `type`, `ts` (UTC) y `seq`. Los persistentes tienen `seq` creciente
 
 ```json
 {"seq": 4, "ts": "2026-10-21T21:52:42.6+00:00", "type": "segment.final",
- "session_id": "07e4b7d953e4", "index": 0, "t0": 1.15, "t1": 8.7,
+ "session_id": "5b2e8c0d41a7", "index": 0, "t0": 1.15, "t1": 8.7,
  "text": "Listo, parece que inicia muy bien esta parte."}
 ```
 
 ```json
 {"seq": null, "ts": "2026-10-21T21:52:41.9+00:00", "type": "segment.partial",
- "session_id": "07e4b7d953e4", "text": "Listo, parece que inicia muy"}
+ "session_id": "5b2e8c0d41a7", "text": "Listo, parece que inicia muy"}
 ```
 
 ### Garantías
 
 - **Orden y sin huecos**: `seq` es global y creciente. Un consumidor que guarde el último `seq` visto puede
   reconectarse con `?after=<seq>` y recibirá exactamente lo que se perdió, antes de los eventos nuevos.
+- **Orden de una sesión**: `session.started` → `segment.*` → `session.stopped` → `session.finalized`. Lo que quedaba
+  por transcribir al parar (la última frase o, si el modelo aún cargaba, todo lo grabado) llega como `segment.final`
+  entre `session.stopped` y `session.finalized`. Los `engine.state` se intercalan.
 - **Cierre**: al apagarse el servicio, los WebSocket se cierran con código **1001**; un suscriptor demasiado lento
   (más de 2000 eventos pendientes) se desconecta con **1013**.
 - **Una sesión a la vez**: `POST /sessions` con otra activa responde 409.
 
+## tasks-service: REST
+
+Organizador de tareas ([F4](F4_TAREAS.md)): consume los dictados de voice-core, le pide a un modelo local de LM Studio
+que extraiga las tareas y las deja como **propuestas**; el LLM nunca escribe en la lista.
+
+| Método y ruta | Cuerpo / parámetros | Respuesta | Errores |
+|---|---|---|---|
+| `GET /health` | — | `{"status": "ok", "version": "0.4.0", "voice_core": true}` (`voice_core` = conectado al WebSocket de voice-core) | — |
+| `GET /llm` | — | `LlmOut` | — |
+| `GET /categories` | — | `list[CategoryOut]` | — |
+| `GET /tasks` | `?status=propuesta \| pendiente \| hecha \| descartada` · `?category=` · `?limit=500` | `list[TaskOut]` | 422 |
+| `POST /tasks` | `TaskIn` | `TaskOut` (201, `pendiente`) | 422: campo no válido o categoría desconocida |
+| `PATCH /tasks/{id}` | `TaskPatch` | `TaskOut` | 404, 422: categoría desconocida o `status` no admitido (volver a `propuesta`) |
+| `POST /extractions` | `{"session_id": "…"}` | `ExtractionOut` (202, `en_cola`, `origin: manual`) | 404 si voice-core no tiene la sesión, 409 si aún no ha terminado, 503 si voice-core no responde |
+| `GET /extractions` | `?session_id=` · `?limit=50` | `list[ExtractionOut]` (más recientes primero) | 422 |
+| `GET /events` | `?after=0&limit=200` | eventos con `seq > after` | 422 |
+| `WS /ws` | `?after=N` (opcional) | reenvía lo guardado con `seq > N` y sigue en vivo | — |
+| `POST /shutdown` | — | 202 `{"status": "cerrando"}`: cierre ordenado | 409 si el proceso no lo admite |
+
+`GET /tasks` ordena las `pendiente` por fecha límite (las que no tienen, al final), las `hecha` por `done_at` (la
+última arriba) y el resto por creación, de la más reciente a la más antigua. `?category=` compara el nombre exacto.
+
+### `TaskOut`
+
+```json
+{
+  "id": 12,
+  "title": "Mandar el informe a Marta",
+  "category": "Trabajo",
+  "due": "2026-10-23",
+  "notes": null,
+  "status": "propuesta",
+  "session_id": "3f9a1c2b7d40",
+  "extraction_id": 4,
+  "quote": "tengo que mandarle el informe a Marta antes del viernes",
+  "created_at": "2026-10-22T09:14:03.120000+00:00",
+  "updated_at": "2026-10-22T09:14:03.120000+00:00",
+  "done_at": null
+}
+```
+
+`due` es `YYYY-MM-DD` o `null` (las fechas relativas se resuelven respecto al día del dictado). `session_id`,
+`extraction_id` y `quote` (el fragmento del dictado del que sale) son `null` en las tareas creadas a mano.
+
+`status`: `propuesta` (la dejó el modelo) → `pendiente` (aprobada) ⇄ `hecha` (`done_at` se fija al marcarla y se
+borra al reabrirla); cualquiera puede pasar a `descartada`. Ninguna vuelve a `propuesta`.
+
+### `TaskIn` y `TaskPatch`
+
+```json
+{"title": "Comprar pilas", "category": "Personal", "due": "2026-10-24", "notes": "las AA del mando"}
+```
+
+- `TaskIn`: `title` (1–200 caracteres) y `category` obligatorios; `due` y `notes` (hasta 4000) opcionales. La
+  categoría tiene que ser una de `/categories` (sin distinguir mayúsculas; se guarda con su nombre configurado).
+  Campos desconocidos → 422.
+- `TaskPatch`: los mismos campos más `status` (`pendiente`, `hecha` o `descartada`), todos opcionales; solo cambian
+  los presentes. `due` o `notes` a `null` los borran; `title`, `category` o `status` a `null` se ignoran. Aprobar una
+  propuesta es `{"status": "pendiente"}`.
+
+### Extracciones
+
+Una extracción es una llamada al modelo sobre un dictado. Se crean de dos formas:
+
+- **`auto`**: al llegar el `session.finalized` de un dictado en modo `tarea` (`Ctrl+Alt+T`) con texto. Una sola por
+  sesión, y nunca para dictados anteriores a la instalación del organizador.
+- **`manual`**: `POST /extractions` («Extraer tareas» en el editor), con cualquier dictado terminado. Repetir la
+  extracción de una sesión **sustituye** sus propuestas pendientes (pasan a `descartada`); las aprobadas no se tocan.
+
+Se procesan **de una en una**, en orden. El texto que se analiza es el corregido en el editor si lo hay
+(`export?format=txt` de voice-core).
+
+```json
+{
+  "id": 4,
+  "session_id": "3f9a1c2b7d40",
+  "origin": "auto",
+  "status": "en_cola",
+  "model": null,
+  "tasks": 0,
+  "duration_s": null,
+  "error": null,
+  "waiting": "la RTX 5090 está ocupada (3,2 GB en uso)",
+  "created_at": "2026-10-22T09:13:41.502000+00:00"
+}
+```
+
+| `status` | Significado |
+|---|---|
+| `en_cola` | esperando turno; con `waiting` ≠ `null`, esperando a que se libere la GPU de LM Studio |
+| `procesando` | llamando al modelo; `model` ya está fijado y `waiting` vuelve a `null` |
+| `lista` | `tasks` = cuántas propuso; `duration_s` = segundos de la llamada, carga del modelo incluida (`null` si el dictado no tenía texto) |
+| `error` | `error` explica por qué (LM Studio no responde, respuesta inválida, voice-core caído…); se puede repetir con `POST /extractions` |
+
+`waiting` es el motivo por el que una extracción sigue en cola (`null` si no espera); hoy, la **salvaguarda de la
+GPU**: con `[tareas] gpu` configurada (vacía = sin comprobar), si el modelo no está cargado y esa GPU tiene más de
+`gpu_vram_max_mib` (1024) de VRAM usada o más de `gpu_uso_max_pct` (10 %) de cómputo medio, no se pide la carga y se
+vuelve a mirar cada `reintento_gpu_s` (60 s); p. ej. «la RTX 5090 está ocupada (3,2 GB en uso y 45 % de cómputo)».
+Las extracciones que quedan en cola o a medias al cerrar el servicio se retoman al arrancar.
+
+### `CategoryOut` y `LlmOut`
+
+```json
+[
+  {"name": "Trabajo", "description": "proyectos, código, reuniones, correos y entregas del trabajo",
+   "pending": 3, "proposed": 1, "configured": true},
+  {"name": "Otros", "description": "lo que no encaja en ninguna de las demás",
+   "pending": 0, "proposed": 0, "configured": true},
+  {"name": "Casa", "description": "", "pending": 2, "proposed": 0, "configured": false}
+]
+```
+
+Las categorías salen de `[tareas.categorias]`, en su orden, más **Otros** al final. Una categoría quitada de la
+configuración sigue apareciendo mientras tenga tareas pendientes o propuestas (`configured: false`), pero ya no se
+puede asignar.
+
+```json
+{"url": "http://127.0.0.1:1234", "model": "openai/gpt-oss-20b", "reachable": true, "loaded": false, "ttl_s": 120}
+```
+
+`reachable` = LM Studio responde; `loaded` = el modelo está cargado (`null` si LM Studio no responde); `ttl_s` = la red
+de seguridad con la que LM Studio descarga el modelo si tasks-service no pudo hacerlo al vaciarse la cola.
+
+## tasks-service: eventos
+
+Mismo mecanismo que voice-core (`seq` propio, creciente y sin huecos; recuperación con `?after=`; cierre con 1001 y
+1013), pero **todos son persistentes**: no hay efímeros.
+
+| `type` | Campos | Cuándo |
+|---|---|---|
+| `task.created` | `session_id` (`null` si se creó a mano), `task` (`TaskOut`) | cada propuesta de una extracción y cada tarea añadida a mano |
+| `task.updated` | `session_id`, `task` (`TaskOut`) | cada `PATCH` y cada propuesta sustituida al repetir una extracción |
+| `extraction.updated` | `session_id`, `extraction` (`ExtractionOut`) | al encolarse, al empezar a esperar la GPU (con `waiting`), al pasar a `procesando` y al terminar (`lista` o `error`) |
+
+```json
+{"seq": 57, "ts": "2026-10-22T09:13:42.6+00:00", "type": "extraction.updated", "session_id": "3f9a1c2b7d40",
+ "extraction": {"id": 4, "session_id": "3f9a1c2b7d40", "origin": "auto", "status": "en_cola", "model": null,
+                "tasks": 0, "duration_s": null, "error": null,
+                "waiting": "la RTX 5090 está ocupada (3,2 GB en uso)",
+                "created_at": "2026-10-22T09:13:41.502+00:00"}}
+```
+
 ## Ejemplos
 
-### PowerShell
+### curl.exe (tasks-service)
+
+```powershell
+$t = "http://127.0.0.1:8766"
+$json = "Content-Type: application/json"
+curl.exe -s "$t/health"
+curl.exe -s "$t/llm"
+curl.exe -s "$t/categories"
+curl.exe -s "$t/tasks?status=propuesta"
+curl.exe -s -X PATCH "$t/tasks/12" -H $json -d '{\"status\": \"pendiente\"}'
+curl.exe -s -X POST "$t/tasks" -H $json -d '{\"title\": \"Comprar pilas\", \"category\": \"Personal\"}'
+curl.exe -s -X POST "$t/extractions" -H $json -d '{\"session_id\": \"3f9a1c2b7d40\"}'
+curl.exe -s "$t/extractions?session_id=3f9a1c2b7d40"
+curl.exe -s "$t/events?after=0"
+curl.exe -s -X POST "$t/shutdown"
+```
+
+> En Windows PowerShell 5.1 las comillas dobles de un argumento para un programa externo se escriben `\"` (en
+> PowerShell 7.3 o posterior, tal cual: `'{"status": "pendiente"}'`). Para un cuerpo con tildes («Investigación») es
+> más seguro un archivo en UTF-8: `--data-binary "@tarea.json"`.
+
+### PowerShell (voice-core)
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:8765/engine
@@ -205,8 +376,13 @@ while True:
         time.sleep(2)  # el servicio no está o se está reiniciando
 ```
 
+El mismo esquema sirve para tasks-service con `ws://127.0.0.1:8766/ws?after=…` y, por ejemplo, avisar de cada
+`task.created` con `status: propuesta`. Así consume tasks-service a voice-core: guarda el último `seq` procesado en su
+base (`state.voice_seq`) y no pierde dictados aunque estuviera apagado.
+
 ### Línea de comandos
 
 `voice-core-cli` (incluido) cubre lo habitual: `estado`, `modo <m>`, `liberar`, `iniciar [--tarea]`, `detener`,
 `alternar`, `sesiones [-n 10]`, `exportar <id> [--txt]` y `seguir [--after N] [--lineas]` (texto en vivo como párrafo).
-Con `TRT_URL` se apunta a otro puerto.
+Con `TRT_URL` se apunta a otro puerto. tasks-service no tiene CLI propia: se arranca con `tasks-service` (o
+`python -m tasks_service`), con `--config` y `--puerto` opcionales.

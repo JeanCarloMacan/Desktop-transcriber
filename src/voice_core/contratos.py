@@ -142,6 +142,13 @@ class SegmentFinal(_EventoBase):
     text: str
 
 
+class SessionStopped(_EventoBase):
+    """Micrófono cerrado: falta transcribir lo grabado (si el modelo aún carga, puede tardar). Luego llega
+    `session.finalized`."""
+    type: Literal["session.stopped"] = "session.stopped"
+    session_id: str
+
+
 class SessionFinalized(_EventoBase):
     type: Literal["session.finalized"] = "session.finalized"
     session_id: str
@@ -177,8 +184,8 @@ class SessionEdited(_EventoBase):
 
 
 Evento = Annotated[
-    Union[SessionStarted, SegmentPartial, SegmentFinal, SessionFinalized, EngineState, EngineError, AttachmentAdded,
-          SessionEdited],
+    Union[SessionStarted, SegmentPartial, SegmentFinal, SessionStopped, SessionFinalized, EngineState, EngineError,
+          AttachmentAdded, SessionEdited],
     Field(discriminator="type"),
 ]
 EVENTO = TypeAdapter(Evento)

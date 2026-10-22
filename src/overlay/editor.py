@@ -105,8 +105,9 @@ class ArrastrarImagenes(QFrame):
 
 class Editor(QWidget):
     capturar = Signal(str)  # pide al controlador un recorte para insertarlo en el cursor de esta sesión
+    extraer_tareas = Signal(str)  # pide al controlador que tasks-service extraiga las tareas de esta sesión
 
-    def __init__(self, cliente: Cliente) -> None:
+    def __init__(self, cliente: Cliente, con_tareas: bool = False) -> None:
         super().__init__(None, Qt.WindowType.Window)
         self.setWindowTitle("Transcriptor RT · Dictados")
         self.setStyleSheet(ESTILO)
@@ -119,6 +120,7 @@ class Editor(QWidget):
         self._cargando = False
         self._llenando = False
         self._insertando = False  # se pidió una captura para insertar en el cursor y aún no llegó
+        self._extraer_al_guardar: str | None = None  # «Extraer tareas» con cambios: primero se guardan
 
         self._lista = QListWidget()
         self._lista.setMinimumWidth(260)
@@ -162,6 +164,9 @@ class Editor(QWidget):
         ia.addWidget(boton("agente", "Copiar para agente", "Markdown con las rutas absolutas de las imágenes "
                            "(Claude Code y otros agentes)", self.copiar_para_agente))
         ia.addStretch(1)
+        if con_tareas:
+            ia.addWidget(boton("tareas", "Extraer tareas", "El organizador busca tareas en este dictado (LM Studio); "
+                               "llegan a la ventana Tareas como propuestas", self.extraer))
 
         self._estado = QLabel()
         self._estado.setStyleSheet("color: #6B7280;")
@@ -259,6 +264,9 @@ class Editor(QWidget):
         elif operacion == "editor:guardar" and isinstance(resultado, dict):
             self._avisar(f"Guardado a las {datetime.now():%H:%M:%S} · también en documento.md")
             self._botones["original"].setEnabled(True)
+            if self._extraer_al_guardar == resultado.get("session_id"):
+                self._extraer_al_guardar = None
+                self.extraer_tareas.emit(resultado["session_id"])
         elif operacion == "editor:original" and isinstance(resultado, dict):
             self.mostrar_documento(resultado)
             self._avisar("De vuelta al texto original del dictado")
@@ -335,6 +343,17 @@ class Editor(QWidget):
         if self._carpeta is not None and self._carpeta.is_dir():
             os.startfile(self._carpeta)  # noqa: S606
 
+    def extraer(self) -> None:
+        """Las tareas salen del texto guardado: si hay cambios, se guardan antes y se extrae al confirmarse."""
+        if self._sesion is None:
+            return
+        if self._modificado:
+            self._extraer_al_guardar = self._sesion
+            self.guardar()
+        else:
+            self.extraer_tareas.emit(self._sesion)
+        self._avisar("Buscando tareas en este dictado…")
+
     # ------------------------------------------------------------ capturas
 
     def insertar_captura(self) -> None:
@@ -394,10 +413,19 @@ class Editor(QWidget):
 
     def _habilitar(self) -> None:
         hay = self._sesion is not None and self._carpeta is not None
-        for clave in ("guardar", "captura", "carpeta", "chat", "agente"):
-            self._botones[clave].setEnabled(hay)
+        for clave in ("guardar", "captura", "carpeta", "chat", "agente", "tareas"):
+            if clave in self._botones:
+                self._botones[clave].setEnabled(hay)
         if not hay:
             self._botones["original"].setEnabled(False)
+
+    @property
+    def sesion(self) -> str | None:
+        return self._sesion
+
+    def avisar(self, texto: str, error: bool = False) -> None:
+        """Mensajes que llegan de fuera (p. ej. el resultado de «Extraer tareas»)."""
+        self._avisar(texto, error)
 
     def _avisar(self, texto: str, error: bool = False) -> None:
         self._estado.setText(texto)

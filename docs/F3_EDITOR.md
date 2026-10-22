@@ -103,8 +103,8 @@ Al editar, se guarda tal cual (con los párrafos re-unidos: el editor parte lín
 - [x] 1. Con `Ctrl+Alt+S` durante un dictado, la captura queda en `datos/sesiones/<id>/capturas/` y en el documento
   justo después de la frase que se estaba diciendo. *(Prueba real: capturas a los 13,4 s y a los 46,3 s de un dictado
   de 1:51; cada una quedó tras la frase en curso y el panel mostró `[📷 1]` y `[📷 2]` en el texto en vivo.)*
-- [~] 2. Cancelar el recorte no deja adjuntos ni errores. *(Cubierto por test: la espera vence y no se sube nada; no
-  hay constancia de una cancelación en la prueba real.)*
+- [x] 2. Cancelar el recorte no deja adjuntos ni errores. *(Cubierto por test y confirmado con Esc en la revisión de
+  F4, 2026-10-22.)*
 - [x] 3. El documento generado intercala párrafos e imágenes por tiempo y se escribe en `documento.md` con rutas
   relativas.
 - [x] 4. Editar y guardar persiste el texto (sin cortes de línea dentro de los párrafos), emite `session.edited` y
@@ -142,7 +142,7 @@ Al editar, se guarda tal cual (con los párrafos re-unidos: el editor parte lín
 | Al terminar | Portapapeles con `[Imagen 1]` y `[Imagen 2]` en su sitio; `documento.md` con rutas relativas |
 | Editor | Dos sesiones corregidas y guardadas |
 | Copiar para chat / para agente | Confirmados por el usuario |
-| Sin comprobar a mano | Cancelar el recorte con Esc, «Insertar captura» desde el editor y capturar sin dictado activo (cubiertos por tests) |
+| Sin comprobar a mano | «Insertar captura» desde el editor (cubierto por tests). Cancelar con Esc y capturar sin dictado activo se vieron en la revisión de F4 |
 
 ## Problemas encontrados y corregidos
 

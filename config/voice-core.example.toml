@@ -54,3 +54,28 @@ opacidad = 0.94
 mostrar = "ctrl+alt+o"    # muestra u oculta el panel con el último texto
 pegar = "ctrl+alt+v"      # pega el último dictado donde está el cursor
 capturar = "ctrl+alt+s"   # recorte de Windows: la captura se adjunta al dictado en ese punto
+tareas = "ctrl+alt+p"     # abre la ventana Tareas (o la oculta si ya está delante)
+editor = "ctrl+alt+e"     # abre el editor de dictados en el último (o lo oculta si ya está delante)
+
+[tareas]
+# tasks-service (F4): convierte los dictados de Ctrl+Alt+T (y los que elijas en el editor) en tareas propuestas.
+activo = true             # el overlay lo arranca oculto y muestra la ventana de tareas
+puerto = 8766
+lmstudio_url = "http://127.0.0.1:1234"
+modelo = "openai/gpt-oss-20b"  # identificador en LM Studio (`lms ls`); se carga solo al extraer
+parametros = { reasoning_effort = "high" }  # con gpt-oss: acierta las fechas relativas; «medium» es el doble de rápido
+descargar_al_terminar = true  # descarga el modelo en cuanto no quedan extracciones (si lo cargó tasks-service)
+ttl_s = 120               # red de seguridad: LM Studio lo descarga tras estos segundos sin uso
+arrancar_lmstudio = true  # si su servidor no responde, `lms server start`
+# Salvaguarda: GPU que usa LM Studio (UUID o parte del nombre, p. ej. "5090"). Antes de cargar el modelo se mira por
+# NVML; si otro programa la usa (más VRAM o más cómputo que los umbrales), la extracción espera y se reintenta sola.
+gpu = ""                  # vacío = no se comprueba
+gpu_vram_max_mib = 1024
+gpu_uso_max_pct = 10
+reintento_gpu_s = 60
+
+[tareas.categorias]
+# Nombre = descripción que ayuda al modelo a elegir. «Otros» se añade sola. Los nombres con tilde, entre comillas.
+Trabajo = "proyectos, código, reuniones, correos y entregas del trabajo"
+"Investigación" = "artículos, experimentos, lecturas y revisiones"
+Personal = "casa, salud, trámites, pagos y compras"

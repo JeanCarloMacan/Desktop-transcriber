@@ -3,7 +3,7 @@
   "info": {
     "title": "voice-core",
     "description": "Transcripción local en tiempo real. Eventos en /ws y /events.",
-    "version": "0.3.0"
+    "version": "0.4.0"
   },
   "paths": {
     "/health": {
@@ -860,6 +860,9 @@
                         "$ref": "#/components/schemas/SegmentFinal"
                       },
                       {
+                        "$ref": "#/components/schemas/SessionStopped"
+                      },
+                      {
                         "$ref": "#/components/schemas/SessionFinalized"
                       },
                       {
@@ -881,6 +884,7 @@
                         "session.started": "#/components/schemas/SessionStarted",
                         "segment.partial": "#/components/schemas/SegmentPartial",
                         "segment.final": "#/components/schemas/SegmentFinal",
+                        "session.stopped": "#/components/schemas/SessionStopped",
                         "session.finalized": "#/components/schemas/SessionFinalized",
                         "engine.state": "#/components/schemas/EngineState",
                         "engine.error": "#/components/schemas/EngineError",
@@ -1946,6 +1950,45 @@
           "mode"
         ],
         "title": "SessionStarted"
+      },
+      "SessionStopped": {
+        "properties": {
+          "seq": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seq",
+            "description": "Orden global; null en eventos efímeros (segment.partial)"
+          },
+          "ts": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ts"
+          },
+          "type": {
+            "type": "string",
+            "const": "session.stopped",
+            "title": "Type",
+            "default": "session.stopped"
+          },
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "seq",
+          "ts",
+          "session_id"
+        ],
+        "title": "SessionStopped",
+        "description": "Micrófono cerrado: falta transcribir lo grabado (si el modelo aún carga, puede tardar). Luego llega\n`session.finalized`."
       },
       "ShutdownOut": {
         "properties": {

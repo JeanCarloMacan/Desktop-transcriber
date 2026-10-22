@@ -1,4 +1,7 @@
-"""Persistencia en SQLite: sesiones, segmentos y eventos. Las migraciones SQL son el contrato del esquema."""
+"""Persistencia en SQLite: sesiones, segmentos y eventos. Las migraciones SQL son el contrato del esquema.
+
+`BaseSqlite` (conexión, migraciones y tabla de eventos) la comparten voice-core y tasks-service.
+"""
 from __future__ import annotations
 
 import logging
@@ -14,7 +17,11 @@ log = logging.getLogger(__name__)
 Fila = dict[str, Any]
 
 
-class Almacen:
+class BaseSqlite:
+    """Conexión compartida entre hilos (con cerrojo), migraciones `<paquete>/migraciones/NNNN_*.sql` y eventos."""
+
+    PAQUETE = "voice_core"
+
     def __init__(self, ruta: Path | str) -> None:
         en_memoria = str(ruta) == ":memory:"
         if not en_memoria:
@@ -34,7 +41,7 @@ class Almacen:
 
     def migrar(self) -> None:
         actual = self.version()
-        carpeta = files("voice_core") / "migraciones"
+        carpeta = files(self.PAQUETE) / "migraciones"
         pendientes = sorted(
             (int(m.group(1)), f) for f in carpeta.iterdir()
             if (m := re.match(r"(\d+)_.*\.sql$", f.name)) and int(m.group(1)) > actual
@@ -60,6 +67,20 @@ class Almacen:
     def _ejecutar(self, sql: str, params: tuple = ()) -> sqlite3.Cursor:
         with self._lock:
             return self._con.execute(sql, params)
+
+    # ------------------------------------------------------------ eventos
+
+    def guardar_evento(self, tipo: str, ts: str, sesion: str | None, payload: str) -> int:
+        cur = self._ejecutar("INSERT INTO events (ts, type, session_id, payload) VALUES (?, ?, ?, ?)",
+                             (ts, tipo, sesion, payload))
+        return int(cur.lastrowid)
+
+    def eventos_desde(self, despues: int, limite: int) -> list[Fila]:
+        return self._todos("SELECT seq, payload FROM events WHERE seq > ? ORDER BY seq LIMIT ?", (despues, limite))
+
+
+class Almacen(BaseSqlite):
+    """Base de voice-core: sesiones, segmentos, capturas y documento."""
 
     # ------------------------------------------------------------ sesiones
 
@@ -122,13 +143,3 @@ class Almacen:
             texto = " ".join(f["text"] for f in self.segmentos(s["id"]))
             self.finalizar_sesion(s["id"], fin, texto, None)
         return len(colgadas)
-
-    # ------------------------------------------------------------ eventos
-
-    def guardar_evento(self, tipo: str, ts: str, sesion: str | None, payload: str) -> int:
-        cur = self._ejecutar("INSERT INTO events (ts, type, session_id, payload) VALUES (?, ?, ?, ?)",
-                             (ts, tipo, sesion, payload))
-        return int(cur.lastrowid)
-
-    def eventos_desde(self, despues: int, limite: int) -> list[Fila]:
-        return self._todos("SELECT seq, payload FROM events WHERE seq > ? ORDER BY seq LIMIT ?", (despues, limite))

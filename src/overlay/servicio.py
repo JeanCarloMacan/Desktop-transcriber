@@ -1,4 +1,4 @@
-"""Arranque y cierre de voice-core desde el overlay (cuando el overlay es su dueño)."""
+"""Arranque y cierre de los servicios locales (voice-core y tasks-service) desde el overlay, cuando es su dueño."""
 from __future__ import annotations
 
 import logging
@@ -16,10 +16,14 @@ CREATE_NO_WINDOW = 0x08000000
 
 
 class ServicioLocal:
-    def __init__(self, aj: Ajustes, ruta_config: Path) -> None:
+    def __init__(self, aj: Ajustes, ruta_config: Path, modulo: str = "voice_core", nombre: str = "voice-core",
+                 base: str | None = None, lanzar: bool | None = None) -> None:
         self._aj = aj
         self._ruta_config = ruta_config
-        self._base = f"http://{aj.servidor.host}:{aj.servidor.puerto}"
+        self._modulo = modulo
+        self.nombre = nombre
+        self._base = base or aj.url_voice_core
+        self._lanzar = aj.overlay.lanzar_servicio if lanzar is None else lanzar
         self._proc: subprocess.Popen[bytes] | None = None
 
     @property
@@ -34,23 +38,23 @@ class ServicioLocal:
             return False
 
     def asegurar(self, espera_max_s: float = 30.0) -> bool:
-        """Si voice-core no responde y la configuración lo permite, lo lanza oculto y espera a que conteste."""
+        """Si el servicio no responde y la configuración lo permite, lo lanza oculto y espera a que conteste."""
         if self.responde():
-            log.info("voice-core ya estaba en marcha: el overlay solo se conecta")
+            log.info("%s ya estaba en marcha: el overlay solo se conecta", self.nombre)
             return True
-        if not self._aj.overlay.lanzar_servicio:
+        if not self._lanzar:
             return False
         python = Path(sys.executable).with_name("python.exe")  # python.exe + CREATE_NO_WINDOW: consola oculta y E/S válida
-        salida = open(self._aj.carpeta_datos / "voice-core.salida.log", "ab")  # noqa: SIM115  # vive con el proceso
-        self._proc = subprocess.Popen([str(python), "-m", "voice_core", "--config", str(self._ruta_config)],
+        salida = open(self._aj.carpeta_datos / f"{self.nombre}.salida.log", "ab")  # noqa: SIM115  # vive con el proceso
+        self._proc = subprocess.Popen([str(python), "-m", self._modulo, "--config", str(self._ruta_config)],
                                       cwd=str(self._aj.raiz), stdout=salida, stderr=subprocess.STDOUT,
                                       stdin=subprocess.DEVNULL, creationflags=CREATE_NO_WINDOW)
-        log.info("voice-core lanzado oculto (pid %d)", self._proc.pid)
+        log.info("%s lanzado oculto (pid %d)", self.nombre, self._proc.pid)
         fin = time.monotonic() + espera_max_s
         while time.monotonic() < fin:
             if self._proc.poll() is not None:
-                log.error("voice-core terminó al arrancar (código %s); ver datos\\voice-core.salida.log",
-                          self._proc.returncode)
+                log.error("%s terminó al arrancar (código %s); ver datos\\%s.salida.log", self.nombre,
+                          self._proc.returncode, self.nombre)
                 self._proc = None
                 return False
             if self.responde(0.5):
@@ -59,15 +63,15 @@ class ServicioLocal:
         return False
 
     def cerrar(self, espera_s: float = 20.0) -> None:
-        """Cierre ordenado (POST /shutdown) del voice-core que lanzamos; si no responde, se termina el proceso."""
+        """Cierre ordenado (POST /shutdown) del servicio que lanzamos; si no responde, se termina el proceso."""
         if self._proc is None:
             return
         try:
             urllib.request.urlopen(urllib.request.Request(self._base + "/shutdown", method="POST"), timeout=3)
             self._proc.wait(timeout=espera_s)
         except (OSError, subprocess.TimeoutExpired) as e:
-            log.warning("voice-core no se cerró por la API (%s): se termina el proceso", e)
+            log.warning("%s no se cerró por la API (%s): se termina el proceso", self.nombre, e)
             self._proc.terminate()
             self._proc.wait(timeout=5)
-        log.info("voice-core cerrado (código %s)", self._proc.returncode)
+        log.info("%s cerrado (código %s)", self.nombre, self._proc.returncode)
         self._proc = None

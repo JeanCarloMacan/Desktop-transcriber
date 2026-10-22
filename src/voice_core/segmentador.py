@@ -24,6 +24,23 @@ ALUCINACIONES = re.compile(
     r"amara\.org|^\W*subt[ií]tulos( en español)?( realizados| hechos| creados)? por\b|gracias por ver el v[ií]deo"
     r"|suscr[ií]bete al canal", re.IGNORECASE)
 
+
+def _normalizar(texto: str) -> str:
+    return " ".join(re.sub(r"[^\w\s]", " ", texto.casefold()).split())
+
+
+def eco_del_glosario(texto: str, glosario: str | None) -> bool:
+    """Whisper a veces escribe en una pausa un trozo del glosario que recibe como `initial_prompt` («Términos
+    frecuentes.»). Es eco si el trozo, de dos palabras o más, está tal cual en el glosario y no es uno de sus
+    términos: decir «learning rate» suelto es válido."""
+    if not glosario:
+        return False
+    n = _normalizar(texto)
+    if len(n.split()) < 2 or f" {n} " not in f" {_normalizar(glosario)} ":
+        return False
+    lista = glosario.split(":", 1)[-1]  # los términos van tras los dos puntos («Términos frecuentes: a, b y c»)
+    return n not in {_normalizar(t) for t in re.split(r"[,;.]|\by\b", lista, flags=re.IGNORECASE)}
+
 Evento = tuple[str, dict]
 
 

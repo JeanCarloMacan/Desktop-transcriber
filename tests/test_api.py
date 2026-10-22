@@ -93,8 +93,9 @@ def test_events_devuelve_los_persistentes_en_orden_y_sin_parciales(ent: Entorno)
     seqs = [e["seq"] for e in eventos]
     assert seqs == sorted(seqs) and len(set(seqs)) == len(seqs)
     assert "segment.partial" not in tipos
-    orden = [t for t in tipos if t in ("session.started", "segment.final", "session.finalized")]
-    assert orden == ["session.started", "segment.final", "session.finalized"]
+    orden = [t for t in tipos if t in ("session.started", "session.stopped", "session.finalized")]
+    assert orden == ["session.started", "session.stopped", "session.finalized"]  # micrófono cerrado, luego el texto
+    assert "segment.final" in tipos
     corte = seqs[1]
     assert [e["seq"] for e in ent.c.get(f"/events?after={corte}").json()] == seqs[2:]
 

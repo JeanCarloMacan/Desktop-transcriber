@@ -1,0 +1,125 @@
+{
+  "fecha": "2026-10-21",
+  "categorias": {
+    "Trabajo": "proyectos, código, reuniones, correos y entregas del trabajo",
+    "Investigación": "artículos, experimentos, lecturas, revisiones y la tesis",
+    "Personal": "casa, salud, trámites, pagos y compras",
+    "Docencia": "clases, prácticas, exámenes, tutorías y material del curso"
+  },
+  "nota": "claves: cada elemento debe aparecer en el título o las notas (sin tildes; «a|b» = cualquiera). fecha: null = sin fecha, «*» = no se puntúa, lista = cualquiera vale. opcional: no cuenta como fallo si falta.",
+  "dictados": [
+    {
+      "id": "d01",
+      "caso": "una tarea con fecha relativa",
+      "texto": "Vale, tarea. Mandarle a Marta el informe de avance del proyecto antes del viernes. Eso.",
+      "esperado": [{"claves": ["informe"], "categoria": ["Trabajo"], "fecha": ["2026-10-23", "2026-10-22"]}]
+    },
+    {
+      "id": "d02",
+      "caso": "varias categorías en un dictado",
+      "texto": "Bueno, a ver, cosas para esta semana. Primero, terminar la revisión del artículo para el segundo revisor, eso es importante. Luego, eh, comprar pilas para el micrófono. Y pedir cita con el dentista, que ya toca.",
+      "esperado": [
+        {"claves": ["revis"], "categoria": ["Investigación"], "fecha": "*"},
+        {"claves": ["pilas"], "categoria": ["Personal", "Docencia"], "fecha": "*"},
+        {"claves": ["dentista"], "categoria": ["Personal"], "fecha": "*"}
+      ]
+    },
+    {
+      "id": "d03",
+      "caso": "feedback sin tareas",
+      "texto": "La figura tres se ve mucho mejor ahora, la leyenda ya no tapa la curva. Me gusta cómo quedó el color del eje. En general el capítulo fluye bien.",
+      "esperado": []
+    },
+    {
+      "id": "d04",
+      "caso": "lo ya hecho no es tarea",
+      "texto": "Ya le mandé el correo a Andrés con los resultados, eso está hecho. Lo que falta es subir el código al repositorio y actualizar el README con las instrucciones de instalación.",
+      "esperado": [
+        {"claves": ["subir|repositorio|codigo"], "categoria": ["Trabajo", "Investigación"], "fecha": null},
+        {"claves": ["readme"], "categoria": ["Trabajo", "Investigación"], "fecha": null}
+      ]
+    },
+    {
+      "id": "d05",
+      "caso": "autocorrección de la fecha",
+      "texto": "Tengo que grabar la clase sobre el modelo de Whisper el lunes, no, perdón, mejor el martes, que el lunes tengo reunión.",
+      "esperado": [{"claves": ["grab"], "categoria": ["Docencia"], "fecha": ["2026-10-27"]}]
+    },
+    {
+      "id": "d06",
+      "caso": "jerga técnica",
+      "texto": "Pendientes del backend: validar el payload del endpoint de sesiones con Pydantic, añadir un test para el WebSocket cuando se reconecta, y revisar por qué el workflow de n8n falla con el webhook.",
+      "esperado": [
+        {"claves": ["payload|pydantic"], "categoria": ["Trabajo"], "fecha": null},
+        {"claves": ["test"], "categoria": ["Trabajo"], "fecha": null},
+        {"claves": ["n8n|webhook|workflow"], "categoria": ["Trabajo"], "fecha": null}
+      ]
+    },
+    {
+      "id": "d07",
+      "caso": "fechas absolutas dichas en palabras",
+      "texto": "Recordar pagar la factura de la luz, vence el treinta y uno. Y el tres de noviembre tengo que llevar el coche a la revisión.",
+      "esperado": [
+        {"claves": ["factura|luz"], "categoria": ["Personal"], "fecha": ["2026-10-31"]},
+        {"claves": ["coche"], "categoria": ["Personal"], "fecha": ["2026-11-03"]}
+      ]
+    },
+    {
+      "id": "d08",
+      "caso": "tareas del curso",
+      "texto": "Para el curso: escribir el enunciado de la próxima práctica sobre redes neuronales, preparar el examen parcial y programar la publicación de las notas para el sábado a las diez.",
+      "esperado": [
+        {"claves": ["enunciado|practica"], "categoria": ["Docencia"], "fecha": "*"},
+        {"claves": ["examen"], "categoria": ["Docencia"], "fecha": "*"},
+        {"claves": ["program|public|notas"], "categoria": ["Docencia"], "fecha": ["2026-10-24"]}
+      ]
+    },
+    {
+      "id": "d09",
+      "caso": "encargo a otra persona",
+      "texto": "Pedirle a Laura que corra otra vez el experimento con la red convolucional, pero con la tasa de aprendizaje a la mitad. Y yo leer el paper de Chen sobre detección de anomalías en series temporales, para la próxima reunión del grupo.",
+      "esperado": [
+        {"claves": ["laura"], "categoria": ["Investigación"], "fecha": null},
+        {"claves": ["chen|paper|leer"], "categoria": ["Investigación"], "fecha": "*"}
+      ]
+    },
+    {
+      "id": "d10",
+      "caso": "dictado divagante con hoy y mañana",
+      "texto": "Eh, bueno, a ver, déjame pensar. Mañana a primera hora llamar al banco por lo de la transferencia. Eh, también, ¿qué más? Ah, sí, contestar el correo de la editorial, eso es para hoy mismo. Y no sé, quizás en algún momento mirar lo de cambiar de proveedor de internet, pero eso no corre prisa.",
+      "esperado": [
+        {"claves": ["banco"], "categoria": ["Personal"], "fecha": ["2026-10-22"]},
+        {"claves": ["editorial"], "categoria": ["Trabajo", "Investigación"], "fecha": ["2026-10-21"]},
+        {"claves": ["internet|proveedor"], "categoria": ["Personal"], "fecha": null}
+      ]
+    },
+    {
+      "id": "d11",
+      "caso": "la misma tarea dicha dos veces",
+      "texto": "Hay que preparar las diapositivas para la defensa. Sí, sí, las diapositivas, que no se me olvide, son para el jueves de la semana que viene.",
+      "esperado": [{"claves": ["diapositiva"], "categoria": ["Investigación", "Trabajo"], "fecha": ["2026-10-29"]}]
+    },
+    {
+      "id": "d12",
+      "caso": "inglés técnico y fin de mes",
+      "texto": "Okay, tarea. Hacer el deploy de la versión nueva en staging. Después avisar al equipo por Teams. Ah, y renovar la licencia del Office antes de fin de mes.",
+      "esperado": [
+        {"claves": ["deploy|despleg"], "categoria": ["Trabajo"], "fecha": null},
+        {"claves": ["avis|teams"], "categoria": ["Trabajo"], "fecha": null, "opcional": true},
+        {"claves": ["licencia|office"], "categoria": ["Trabajo", "Personal"], "fecha": ["2026-10-31", "2026-10-30"]}
+      ]
+    },
+    {
+      "id": "d13",
+      "caso": "pasado: «tuve que» no es tarea",
+      "texto": "Ayer tuve que rehacer toda la tabla porque los datos estaban mal. Ya quedó. Ahora los números cuadran con los del artículo.",
+      "esperado": []
+    },
+    {
+      "id": "d14",
+      "caso": "fecha de un evento, no de la tarea",
+      "texto": "Buscar un regalo para el cumpleaños de mi sobrina, que es el quince de noviembre.",
+      "esperado": [{"claves": ["regalo"], "categoria": ["Personal"], "fecha": "*"}]
+    }
+  ]
+}

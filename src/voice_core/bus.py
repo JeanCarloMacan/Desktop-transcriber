@@ -8,8 +8,11 @@ import asyncio
 import json
 import logging
 from datetime import UTC, datetime
+from typing import Any
 
-from voice_core.almacen import Almacen
+from pydantic import TypeAdapter
+
+from voice_core.almacen import BaseSqlite
 from voice_core.contratos import EVENTO, EVENTOS_EFIMEROS, Evento
 
 log = logging.getLogger(__name__)
@@ -22,8 +25,13 @@ def ahora() -> datetime:
 
 
 class Bus:
-    def __init__(self, almacen: Almacen) -> None:
+    """`adaptador` valida los eventos guardados al releerlos; tasks-service pasa el suyo."""
+
+    def __init__(self, almacen: BaseSqlite, adaptador: TypeAdapter[Any] = EVENTO,
+                 efimeros: set[str] = EVENTOS_EFIMEROS) -> None:
         self._almacen = almacen
+        self._adaptador = adaptador
+        self._efimeros = efimeros
         self._colas: set[asyncio.Queue[Evento | None]] = set()
         self.cerrando = False
 
@@ -38,7 +46,7 @@ class Bus:
         self._colas.clear()
 
     def publicar(self, evento: Evento) -> Evento:
-        if evento.type not in EVENTOS_EFIMEROS:
+        if evento.type not in self._efimeros:
             payload = evento.model_dump(mode="json", exclude={"seq"})
             seq = self._almacen.guardar_evento(evento.type, payload["ts"], payload.get("session_id"),
                                                json.dumps(payload, ensure_ascii=False))
@@ -63,5 +71,5 @@ class Bus:
         self._colas.discard(cola)
 
     def desde(self, despues: int, limite: int) -> list[Evento]:
-        return [EVENTO.validate_python({**json.loads(f["payload"]), "seq": f["seq"]})
+        return [self._adaptador.validate_python({**json.loads(f["payload"]), "seq": f["seq"]})
                 for f in self._almacen.eventos_desde(despues, limite)]

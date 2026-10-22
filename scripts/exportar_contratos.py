@@ -1,4 +1,6 @@
-"""Genera contracts/openapi.json y contracts/eventos.schema.json a partir de src/voice_core/contratos.py.
+"""Genera los contratos de contracts/ a partir de los modelos: openapi.json y eventos.schema.json (voice-core,
+src/voice_core/contratos.py) y tareas.openapi.json y tareas.eventos.schema.json (tasks-service,
+src/tasks_service/contratos.py).
 
 Uso (desde la raíz):  .venv\\Scripts\\python scripts\\exportar_contratos.py [--comprobar]
 Con --comprobar no escribe nada y sale con código 1 si los archivos están desactualizados.
@@ -15,16 +17,26 @@ RAIZ = Path(__file__).resolve().parents[1]
 CONTRATOS = RAIZ / "contracts"
 
 
+def _json(datos: Any) -> str:
+    return json.dumps(datos, ensure_ascii=False, indent=2) + "\n"
+
+
 def generar() -> dict[str, str]:
+    from tasks_service.api import crear_app as crear_app_tareas
+    from tasks_service.contratos import EVENTO_TAREAS
     from voice_core.api import crear_app
     from voice_core.contratos import EVENTO
 
     app = crear_app(None)  # type: ignore[arg-type]  # el esquema no necesita servicios
     eventos = EVENTO.json_schema()
     eventos["title"] = "Eventos de voice-core"
+    eventos_tareas = EVENTO_TAREAS.json_schema()
+    eventos_tareas["title"] = "Eventos de tasks-service"
     return {
-        "openapi.json": json.dumps(app.openapi(), ensure_ascii=False, indent=2) + "\n",
-        "eventos.schema.json": json.dumps(eventos, ensure_ascii=False, indent=2) + "\n",
+        "openapi.json": _json(app.openapi()),
+        "eventos.schema.json": _json(eventos),
+        "tareas.openapi.json": _json(crear_app_tareas(None).openapi()),  # type: ignore[arg-type]
+        "tareas.eventos.schema.json": _json(eventos_tareas),
     }
 
 

@@ -82,7 +82,7 @@ def _recibir(entrada: Connection, bandeja: queue.Queue[Mensaje]) -> None:
 
 def _ejecutar(entrada: Connection, salida: Connection, cfg: dict[str, Any]) -> None:
     from voice_core.gpu import preparar_cuda
-    from voice_core.segmentador import SR, ParamsSegmentacion, Segmentador
+    from voice_core.segmentador import SR, ParamsSegmentacion, Segmentador, eco_del_glosario
 
     preparar_cuda([Path(d) for d in cfg["cuda_dll_dirs"]])
     import ctranslate2
@@ -101,9 +101,11 @@ def _ejecutar(entrada: Connection, salida: Connection, cfg: dict[str, Any]) -> N
                                     beam_size=cfg["beam_final"] if final else cfg["beam_parcial"],
                                     initial_prompt=cfg["glosario"], condition_on_previous_text=False,
                                     vad_filter=False, without_timestamps=True)
-        # Criterio de Whisper para «aquí no se habló»: se descarta lo que el propio modelo marca como no-voz.
+        # Criterio de Whisper para «aquí no se habló»: se descarta lo que el propio modelo marca como no-voz, y los
+        # trozos del glosario que repite en una pausa.
         return " ".join(s.text.strip() for s in segs
-                        if not (s.no_speech_prob > NO_VOZ_PROB and s.avg_logprob < NO_VOZ_LOGPROB)).strip()
+                        if not (s.no_speech_prob > NO_VOZ_PROB and s.avg_logprob < NO_VOZ_LOGPROB)
+                        and not eco_del_glosario(s.text, cfg["glosario"])).strip()
 
     ruido = (np.random.default_rng(0).standard_normal(SR) * 0.003).astype(np.float32)
     transcribir(ruido, False)  # calentamiento: la primera llamada paga la inicialización de kernels

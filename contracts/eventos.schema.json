@@ -506,6 +506,45 @@
       ],
       "title": "SessionStarted",
       "type": "object"
+    },
+    "SessionStopped": {
+      "description": "Micrófono cerrado: falta transcribir lo grabado (si el modelo aún carga, puede tardar). Luego llega\n`session.finalized`.",
+      "properties": {
+        "seq": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Orden global; null en eventos efímeros (segment.partial)",
+          "title": "Seq"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "session.stopped",
+          "default": "session.stopped",
+          "title": "Type",
+          "type": "string"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "session_id"
+      ],
+      "title": "SessionStopped",
+      "type": "object"
     }
   },
   "discriminator": {
@@ -517,7 +556,8 @@
       "segment.partial": "#/$defs/SegmentPartial",
       "session.edited": "#/$defs/SessionEdited",
       "session.finalized": "#/$defs/SessionFinalized",
-      "session.started": "#/$defs/SessionStarted"
+      "session.started": "#/$defs/SessionStarted",
+      "session.stopped": "#/$defs/SessionStopped"
     },
     "propertyName": "type"
   },
@@ -530,6 +570,9 @@
     },
     {
       "$ref": "#/$defs/SegmentFinal"
+    },
+    {
+      "$ref": "#/$defs/SessionStopped"
     },
     {
       "$ref": "#/$defs/SessionFinalized"

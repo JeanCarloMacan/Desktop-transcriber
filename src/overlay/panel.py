@@ -23,7 +23,7 @@ from overlay.estado import EstadoPanel
 
 log = logging.getLogger(__name__)
 
-ICONOS = {"copiar": "", "pegar": "", "editor": "", "liberar": "", "ampliar": "",
+ICONOS = {"copiar": "", "pegar": "", "editor": "", "tareas": "", "liberar": "", "ampliar": "",
           "compactar": "", "ocultar": ""}
 FUENTE_ICONOS = ["Segoe Fluent Icons", "Segoe MDL2 Assets"]
 LINEAS_POR_DEFECTO = {False: 4, True: 14}  # compacto / amplio
@@ -40,7 +40,8 @@ QScrollBar::handle:vertical { background: rgba(255, 255, 255, 0.25); border-radi
 QScrollBar::add-line, QScrollBar::sub-line { height: 0; }
 """
 AYUDAS = {"copiar": "Copiar el último dictado", "pegar": "Pegarlo donde está el cursor (Ctrl+Alt+V)",
-          "editor": "Abrir el editor: corregir, ver capturas y copiar para la IA",
+          "editor": "Abrir el editor de dictados: corregir, ver capturas y copiar para la IA (Ctrl+Alt+E)",
+          "tareas": "Abrir las tareas: propuestas del organizador y listas por categoría (Ctrl+Alt+P)",
           "liberar": "Terminar y liberar la GPU (Ctrl+Alt+L)", "ampliar": "Cambiar a la vista amplia",
           "ocultar": "Ocultar (Ctrl+Alt+O)"}
 CURSORES = {frozenset({"izq"}): Qt.CursorShape.SizeHorCursor, frozenset({"der"}): Qt.CursorShape.SizeHorCursor,
@@ -74,11 +75,12 @@ class Panel(QWidget):
     accion = Signal(str)
     raton = Signal(bool)
 
-    def __init__(self, ancho: int, letra: float, opacidad: float, ruta_estado: Path) -> None:
+    def __init__(self, ancho: int, letra: float, opacidad: float, ruta_estado: Path, con_tareas: bool = False) -> None:
         super().__init__(None, Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint
                          | Qt.WindowType.Tool | Qt.WindowType.WindowDoesNotAcceptFocus)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+        self.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips)  # el panel nunca está activo: sin esto no salen
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setMouseTracking(True)
         self.setWindowTitle("Transcriptor RT")
@@ -107,6 +109,8 @@ class Panel(QWidget):
         cabecera.addWidget(self._titulo, 1)
         self._botones: dict[str, QToolButton] = {}
         for nombre, ayuda in AYUDAS.items():
+            if nombre == "tareas" and not con_tareas:
+                continue
             b = QToolButton()
             b.setText(ICONOS[nombre])
             b.setToolTip(ayuda)

@@ -8,6 +8,7 @@ from __future__ import annotations
 import os
 import tomllib
 from pathlib import Path
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 
@@ -86,6 +87,43 @@ class AjustesOverlay(_Seccion):
     mostrar: str = "ctrl+alt+o"
     pegar: str = "ctrl+alt+v"
     capturar: str = "ctrl+alt+s"
+    tareas: str = Field("ctrl+alt+p", description="Abre la ventana Tareas (o la oculta si ya está delante)")
+    editor: str = Field("ctrl+alt+e", description="Abre el editor de dictados en el último (o lo oculta si ya está "
+                        "delante)")
+
+
+CATEGORIAS_POR_DEFECTO = {
+    "Trabajo": "proyectos, código, reuniones, correos y entregas del trabajo",
+    "Investigación": "artículos, experimentos, lecturas y revisiones",
+    "Personal": "casa, salud, trámites, pagos y compras",
+}
+
+
+class AjustesTareas(_Seccion):
+    """tasks-service (F4): extrae tareas de los dictados con un modelo de LM Studio."""
+
+    activo: bool = Field(True, description="El overlay lanza tasks-service y muestra la ventana de tareas")
+    puerto: int = Field(8766, ge=1, le=65535)
+    lmstudio_url: str = "http://127.0.0.1:1234"
+    modelo: str = Field("openai/gpt-oss-20b", description="Identificador del modelo en LM Studio (`lms ls`); elegido "
+                        "en el banco de F4: 14/14 dictados bien con reasoning_effort=high, ≈ 4 s, 12 GB")
+    ttl_s: int = Field(120, ge=10, description="Red de seguridad: LM Studio descarga el modelo tras estos segundos sin "
+                       "uso si tasks-service no pudo descargarlo al terminar")
+    descargar_al_terminar: bool = Field(True, description="Descargar el modelo en cuanto se vacía la cola de "
+                                        "extracciones (si lo cargó tasks-service)")
+    gpu: str = Field("", description="GPU que usa LM Studio (UUID o parte del nombre, p. ej. «5090»): antes de cargar "
+                     "el modelo se comprueba que ningún otro programa la esté usando. Vacío = no se comprueba")
+    gpu_vram_max_mib: int = Field(1024, ge=0, description="Con más VRAM usada, la GPU cuenta como ocupada")
+    gpu_uso_max_pct: int = Field(10, ge=0, le=100, description="Con más uso de cómputo medio, la GPU cuenta como "
+                                 "ocupada")
+    reintento_gpu_s: float = Field(60.0, gt=0, description="Cada cuánto se vuelve a mirar una GPU ocupada")
+    espera_s: float = Field(300.0, gt=0, description="Tiempo máximo por extracción, carga del modelo incluida")
+    arrancar_lmstudio: bool = Field(True, description="Si el servidor de LM Studio no responde, `lms server start`")
+    parametros: dict[str, Any] = Field(default_factory=lambda: {"reasoning_effort": "high"},
+                                       description="Campos extra de la petición al modelo; con gpt-oss, «high» "
+                                                   "acierta las fechas que «low» y «medium» fallan")
+    categorias: dict[str, str] = Field(default_factory=lambda: dict(CATEGORIAS_POR_DEFECTO),
+                                       description="Nombre → descripción que ayuda al modelo; «Otros» se añade sola")
 
 
 class Ajustes(_Seccion):
@@ -96,6 +134,7 @@ class Ajustes(_Seccion):
     audio: AjustesAudio = AjustesAudio()
     hotkeys: AjustesHotkeys = AjustesHotkeys()
     overlay: AjustesOverlay = AjustesOverlay()
+    tareas: AjustesTareas = AjustesTareas()
     raiz: Path = Field(default_factory=Path.cwd, description="Base para resolver rutas relativas")
     _uuid_gpu: str | None = PrivateAttr(default=None)
     _gpu_resuelta: bool = PrivateAttr(default=False)
@@ -117,6 +156,14 @@ class Ajustes(_Seccion):
     @property
     def carpeta_datos(self) -> Path:
         return self.ruta(self.datos.carpeta)
+
+    @property
+    def url_voice_core(self) -> str:
+        return f"http://{self.servidor.host}:{self.servidor.puerto}"
+
+    @property
+    def url_tareas(self) -> str:
+        return f"http://{self.servidor.host}:{self.tareas.puerto}"
 
     @property
     def ruta_modelo(self) -> Path:

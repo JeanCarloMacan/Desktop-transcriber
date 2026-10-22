@@ -19,7 +19,8 @@ from voice_core.almacen import Almacen, Fila
 from voice_core.audio import SR, Entrega, Fuente
 from voice_core.bus import Bus, ahora
 from voice_core.contratos import (AttachmentAdded, AttachmentOut, DocumentOut, EngineError, FormatoExport, ModoSesion,
-                                  SegmentFinal, SegmentPartial, SessionEdited, SessionFinalized, SessionStarted)
+                                  SegmentFinal, SegmentPartial, SessionEdited, SessionFinalized, SessionStarted,
+                                  SessionStopped)
 from voice_core.motor import Motor
 
 log = logging.getLogger(__name__)
@@ -130,6 +131,7 @@ class GestorSesiones:
         a.deteniendo = True
         self._motor.terminar_sesion()
         self._almacen.marcar_estado(a.id, "procesando")
+        self._bus.publicar(SessionStopped(seq=None, ts=ahora(), session_id=a.id))
         self._sonido("fin")
         tarea = asyncio.create_task(self._esperar_cierre(a))
         self._cierres.add(tarea)

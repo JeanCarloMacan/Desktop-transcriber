@@ -1,5 +1,6 @@
-"""Genera docs/img/panel.png (el panel en tres estados) y docs/img/editor.png (el editor con una captura), con Qt y
-las fuentes reales de Windows, sin mostrar nada en pantalla.
+"""Genera docs/img/panel.png (el panel en tres estados), docs/img/editor.png (el editor con una captura) y
+docs/img/tareas.png (la ventana de tareas con propuestas), con Qt y las fuentes reales de Windows, sin mostrar nada en
+pantalla.
 
 Uso (desde la raíz):  .venv\\Scripts\\python scripts\\capturar_panel.py
 """
@@ -95,6 +96,48 @@ def capturar_editor(panel_png: Path) -> Path:
     return destino
 
 
+def capturar_tareas() -> Path:
+    """La ventana de tareas en «Propuestas», con lo que el organizador sacó de un dictado de tarea."""
+    from overlay.tareas import VentanaTareas
+
+    hace = datetime.now(UTC)
+
+    def t(id_: int, titulo: str, cat: str, estado: str = "propuesta", due: str | None = None,
+          cita: str | None = None) -> dict:
+        return {"id": id_, "title": titulo, "category": cat, "status": estado, "due": due, "notes": None,
+                "session_id": "a", "extraction_id": 1, "quote": cita, "done_at": None,
+                "created_at": (hace - timedelta(seconds=id_)).isoformat(), "updated_at": hace.isoformat()}
+
+    hoy = datetime.now().astimezone().date()  # las fechas de las tareas son días locales
+    manana = (hoy + timedelta(days=1)).isoformat()
+    viernes = (hoy + timedelta(days=(4 - hoy.weekday()) % 7 or 7)).isoformat()
+    categorias = [{"name": n, "description": d, "pending": 0, "proposed": 0, "configured": True} for n, d in [
+        ("Trabajo", "proyectos, código, reuniones, correos y entregas"), ("Investigación", "artículos y experimentos"),
+        ("Personal", "casa, salud, trámites, pagos y compras"), ("Otros", "lo que no encaja en las demás")]]
+    tareas = [
+        t(1, "Enviar a Marta el informe de avance", "Trabajo", due=viernes,
+          cita="mandarle a Marta el informe de avance del proyecto antes del viernes"),
+        t(2, "Validar el payload del endpoint de sesiones con Pydantic", "Trabajo",
+          cita="validar el payload del endpoint de sesiones con Pydantic"),
+        t(3, "Responder al segundo revisor", "Investigación", cita="terminar la revisión para el segundo revisor"),
+        t(4, "Llamar al banco por la transferencia", "Personal", due=manana,
+          cita="mañana a primera hora llamar al banco por lo de la transferencia"),
+        t(5, "Renovar el pasaporte", "Personal", estado="pendiente"),
+        t(6, "Comprar pilas", "Personal", estado="pendiente"),
+        t(7, "Subir el código al repositorio", "Trabajo", estado="pendiente"),
+    ]
+    ventana = VentanaTareas(_ClienteDemo())  # type: ignore[arg-type]
+    ventana.resize(1000, 620)
+    ventana._respuesta("tareas:categorias", categorias)
+    ventana._respuesta("tareas:lista", tareas)
+    ventana._lista.item(0).setSelected(True)
+    ventana.avisar("4 tareas propuestas en 4 s · gpt-oss-20b en LM Studio")
+    ventana.layout().activate()
+    destino = RAIZ / "docs" / "img" / "tareas.png"
+    ventana.grab().save(str(destino))
+    return destino
+
+
 def main() -> int:
     app = QApplication(sys.argv)  # noqa: F841  (Qt necesita la aplicación viva)
     carpeta = Path(tempfile.mkdtemp())
@@ -128,6 +171,7 @@ def main() -> int:
     captura = Path(tempfile.mkdtemp()) / "captura.png"
     capturas[0].save(str(captura))  # el panel dictando hace de «captura de pantalla» en el ejemplo del editor
     sys.stdout.write(f"escrito {capturar_editor(captura)}\n")
+    sys.stdout.write(f"escrito {capturar_tareas()}\n")
     return 0
 
 

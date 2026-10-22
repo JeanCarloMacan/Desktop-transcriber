@@ -42,7 +42,7 @@ def modificadores_pulsados() -> bool:
     return any(_user32.GetAsyncKeyState(vk) & 0x8000 for vk in (VK_SHIFT, VK_CONTROL, VK_MENU, VK_LWIN, VK_RWIN))
 
 
-def enviar_ctrl_v(espera_max_s: float = 2.0) -> bool:
+def enviar_ctrl_v(espera_max_s: float = 6.0) -> bool:
     """Pulsa Ctrl+V en la ventana activa. Primero espera a que sueltes Ctrl/Alt/Mayús/Win (vienes de pulsar
     Ctrl+Alt+V): si no, la aplicación recibiría Ctrl+Alt+V. Bloquea hasta `espera_max_s`; llamar fuera del hilo de la UI."""
     fin = time.monotonic() + espera_max_s

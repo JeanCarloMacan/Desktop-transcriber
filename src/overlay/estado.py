@@ -39,7 +39,9 @@ class EstadoPanel:
     sesion_id: str | None = None
     modo_sesion: str = "dictado"
     inicio: datetime | None = None
-    grabando: bool = False
+    fin: datetime | None = None  # micrófono cerrado (session.stopped): el reloj se para aquí
+    grabando: bool = False  # sesión abierta: de session.started a session.finalized
+    terminando: bool = False  # micrófono cerrado, falta el texto final (p. ej. el modelo aún carga)
     finales: list[str] = field(default_factory=list)
     parcial: str = ""
     capturas: int = 0
@@ -59,10 +61,13 @@ class EstadoPanel:
             return ["consultar_motor"] if self.motor in ("en_espera", "en_reposo") else []
         if tipo == "session.started":
             self.sesion_id, self.modo_sesion = ev["session_id"], ev["mode"]
-            self.inicio = datetime.fromisoformat(ev["ts"])
-            self.grabando, self.finales, self.parcial, self.capturas = True, [], "", 0
+            self.inicio, self.fin = datetime.fromisoformat(ev["ts"]), None
+            self.grabando, self.terminando, self.finales, self.parcial, self.capturas = True, False, [], "", 0
             self._avisar("")
             return ["mostrar", "cancelar_ocultar"]
+        if tipo == "session.stopped" and ev.get("session_id") == self.sesion_id and self.grabando:
+            self.terminando, self.fin = True, datetime.fromisoformat(ev["ts"])
+            return []
         if tipo == "attachment.added" and ev.get("session_id") == self.sesion_id:
             self.capturas += 1
             if self.grabando:
@@ -80,7 +85,7 @@ class EstadoPanel:
             self.parcial = ""
             return []
         if tipo == "session.finalized" and ev.get("session_id") == self.sesion_id:
-            self.grabando, self.parcial = False, ""
+            self.grabando, self.terminando, self.parcial = False, False, ""
             texto = ev.get("text", "").strip()
             acciones: list[Accion] = []
             if texto:
@@ -143,6 +148,8 @@ class EstadoPanel:
     def color_punto(self) -> str:
         if not self.conectado:
             return COLORES_PUNTO["apagado"]
+        if self.terminando:
+            return COLORES_PUNTO["arrancando"]
         return COLORES_PUNTO["dictando"] if self.grabando and self.motor != "arrancando" else \
             COLORES_PUNTO.get(self.motor, COLORES_PUNTO["apagado"])
 
@@ -158,7 +165,11 @@ class EstadoPanel:
             separador = " " if self.finales else ""
             cuerpo += f'{separador}<span style="color:{COLOR_PARCIAL}; font-style:italic">{html.escape(self.parcial)}…</span>'
         if not self.finales and not self.parcial:
-            pista = "Escuchando… habla cuando quieras." if self.grabando else "Aún no hay dictados."
+            if self.terminando:  # parado antes de tener texto: decir por qué aún no hay nada
+                pista = ("Micrófono cerrado. Lo grabado se transcribe en cuanto termine de cargar el modelo…"
+                         if self.motor == "arrancando" else "Micrófono cerrado. Transcribiendo lo grabado…")
+            else:
+                pista = "Escuchando… habla cuando quieras." if self.grabando else "Aún no hay dictados."
             cuerpo = f'<span style="color:{COLOR_PARCIAL}">{pista}</span>'
         return cuerpo
 
@@ -169,8 +180,11 @@ class EstadoPanel:
         if self.grabando:
             partes = [self.modo_sesion]
             if self.inicio is not None:
-                partes.append(_mmss((ahora_utc - self.inicio).total_seconds()))
-            partes.append("cargando el modelo…" if self.motor == "arrancando" else disp)
+                partes.append(_mmss(((self.fin or ahora_utc) - self.inicio).total_seconds()))
+            if self.terminando:
+                partes.append("terminando de cargar el modelo…" if self.motor == "arrancando" else "transcribiendo…")
+            else:
+                partes.append("cargando el modelo…" if self.motor == "arrancando" else disp)
             return " · ".join(p for p in partes if p)
         if self.modo == "pausado":
             return "en pausa · no escucha"

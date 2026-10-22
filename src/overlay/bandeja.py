@@ -35,16 +35,21 @@ class Bandeja(QSystemTrayIcon):
     modo = Signal(str)
 
     def __init__(self, tecla_mostrar: str, tecla_pegar: str, tecla_liberar: str, tecla_capturar: str,
-                 dueño_servicio: bool) -> None:
+                 dueño_servicio: bool, con_tareas: bool = False, tecla_tareas: str = "", tecla_editor: str = "") -> None:
         super().__init__()
         self._iconos: dict[str, QIcon] = {}
         menu = QMenu()
         self._acciones: dict[str, QAction] = {}
-        for nombre, texto in [("mostrar", f"Mostrar u ocultar el panel\t{tecla_mostrar}"),
-                              ("editor", "Abrir el editor de dictados"),
-                              ("capturar", f"Capturar pantalla para el dictado\t{tecla_capturar}"),
-                              ("copiar", "Copiar el último dictado"),
-                              ("pegar", f"Pegar el último dictado\t{tecla_pegar}")]:
+        entradas = [("mostrar", f"Mostrar u ocultar el panel\t{tecla_mostrar}"),
+                    ("editor", f"Abrir el editor de dictados\t{tecla_editor}" if tecla_editor
+                     else "Abrir el editor de dictados"),
+                    ("tareas", f"Abrir las tareas\t{tecla_tareas}" if tecla_tareas else "Abrir las tareas"),
+                    ("capturar", f"Capturar pantalla para el dictado\t{tecla_capturar}"),
+                    ("copiar", "Copiar el último dictado"),
+                    ("pegar", f"Pegar el último dictado\t{tecla_pegar}")]
+        for nombre, texto in entradas:
+            if nombre == "tareas" and not con_tareas:
+                continue
             self._acciones[nombre] = menu.addAction(texto, lambda n=nombre: self.accion.emit(n))
         menu.addSeparator()
         submenu = menu.addMenu("Modo del motor")

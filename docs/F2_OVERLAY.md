@@ -76,11 +76,12 @@ momento fuera de un dictado. En CPU no hay reposo: se apaga a los 2 min.
 - [x] 2. Al pulsar `Ctrl+Alt+D` el panel aparece sin quitar el foco a la ventana activa y muestra el estado del motor.
 - [x] 3. El texto aparece como párrafo continuo: finales en blanco, provisional en gris, reemplazado en el sitio.
 - [x] 4. Al terminar, el texto queda en el portapapeles y el panel se desvanece a los 15 s (no con el ratón encima).
-- [~] 5. `Ctrl+Alt+V` pega el último dictado en la ventana activa aunque sigas sujetando Ctrl y Alt. *(Implementado
-  y registrado; falta confirmación explícita en una prueba real.)*
+- [x] 5. `Ctrl+Alt+V` pega el último dictado en la ventana activa aunque sigas sujetando Ctrl y Alt. *(Confirmado
+  en la revisión de F4, 2026-10-22; desde v0.4.0 espera hasta 6 s y, si no sueltas, avisa en el panel.)*
 - [x] 6. `Ctrl+Alt+O` muestra u oculta el panel con el último texto.
-- [~] 7. Desde la bandeja se cambia el modo, se libera la GPU y se sale; al salir no queda ningún proceso. *(El cierre
-  ordenado está probado por la API —sin procesos residuales—; falta confirmar el clic en «Salir» del menú.)*
+- [x] 7. Desde la bandeja se cambia el modo, se libera la GPU y se sale; al salir no queda ningún proceso.
+  *(Confirmado en la revisión de F4, 2026-10-22: «Salir» cerró voice-core y tasks-service con código 0, sin procesos
+  residuales.)*
 - [x] 8. El panel recuerda posición, tamaño y letra, y vuelve a una posición visible si la guardada quedó fuera.
 - [x] 9. Un acceso directo en la carpeta de Inicio de Windows lo arranca al iniciar sesión.
 - [x] 10. La lógica del panel tiene tests sin Qt; el panel se renderiza en tests sin mostrarse en pantalla.

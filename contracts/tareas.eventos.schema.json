@@ -1,0 +1,387 @@
+{
+  "$defs": {
+    "ExtractionOut": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "integer"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "origin": {
+          "enum": [
+            "auto",
+            "manual"
+          ],
+          "title": "Origin",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "en_cola",
+            "procesando",
+            "lista",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Model"
+        },
+        "tasks": {
+          "description": "Tareas propuestas",
+          "minimum": 0,
+          "title": "Tasks",
+          "type": "integer"
+        },
+        "duration_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Segundos de la llamada al modelo (carga incluida)",
+          "title": "Duration S"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Error"
+        },
+        "waiting": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Motivo por el que sigue en cola (p. ej. la GPU de LM Studio está ocupada por otro programa); null si no espera",
+          "title": "Waiting"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "session_id",
+        "origin",
+        "status",
+        "model",
+        "tasks",
+        "duration_s",
+        "error",
+        "created_at"
+      ],
+      "title": "ExtractionOut",
+      "type": "object"
+    },
+    "ExtractionUpdated": {
+      "properties": {
+        "seq": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Orden global de tasks-service",
+          "title": "Seq"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "extraction.updated",
+          "default": "extraction.updated",
+          "title": "Type",
+          "type": "string"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "extraction": {
+          "$ref": "#/$defs/ExtractionOut"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "session_id",
+        "extraction"
+      ],
+      "title": "ExtractionUpdated",
+      "type": "object"
+    },
+    "TaskCreated": {
+      "properties": {
+        "seq": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Orden global de tasks-service",
+          "title": "Seq"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "task.created",
+          "default": "task.created",
+          "title": "Type",
+          "type": "string"
+        },
+        "session_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Session Id"
+        },
+        "task": {
+          "$ref": "#/$defs/TaskOut"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "task"
+      ],
+      "title": "TaskCreated",
+      "type": "object"
+    },
+    "TaskOut": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "integer"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "category": {
+          "title": "Category",
+          "type": "string"
+        },
+        "due": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Due"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Notes"
+        },
+        "status": {
+          "enum": [
+            "propuesta",
+            "pendiente",
+            "hecha",
+            "descartada"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "session_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Dictado de voice-core del que salió; null si se creó a mano",
+          "title": "Session Id"
+        },
+        "extraction_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Extraction Id"
+        },
+        "quote": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Fragmento del dictado que la originó",
+          "title": "Quote"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "title": "Updated At",
+          "type": "string"
+        },
+        "done_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Done At"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "category",
+        "due",
+        "notes",
+        "status",
+        "session_id",
+        "extraction_id",
+        "quote",
+        "created_at",
+        "updated_at",
+        "done_at"
+      ],
+      "title": "TaskOut",
+      "type": "object"
+    },
+    "TaskUpdated": {
+      "properties": {
+        "seq": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Orden global de tasks-service",
+          "title": "Seq"
+        },
+        "ts": {
+          "format": "date-time",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "task.updated",
+          "default": "task.updated",
+          "title": "Type",
+          "type": "string"
+        },
+        "session_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Session Id"
+        },
+        "task": {
+          "$ref": "#/$defs/TaskOut"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "task"
+      ],
+      "title": "TaskUpdated",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "extraction.updated": "#/$defs/ExtractionUpdated",
+      "task.created": "#/$defs/TaskCreated",
+      "task.updated": "#/$defs/TaskUpdated"
+    },
+    "propertyName": "type"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/TaskCreated"
+    },
+    {
+      "$ref": "#/$defs/TaskUpdated"
+    },
+    {
+      "$ref": "#/$defs/ExtractionUpdated"
+    }
+  ],
+  "title": "Eventos de tasks-service"
+}

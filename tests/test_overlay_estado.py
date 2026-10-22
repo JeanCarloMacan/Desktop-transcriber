@@ -140,3 +140,31 @@ def test_editar_la_ultima_sesion_pide_actualizar_el_texto_para_pegar() -> None:
     e.aplicar(ev("session.finalized", session_id="s1", text="Hola.", duration_s=2, segments=1))
     assert e.aplicar(ev("session.edited", session_id="s1", edited_at=T0.isoformat())) == ["actualizar_texto"]
     assert e.aplicar(ev("session.edited", session_id="otra", edited_at=None)) == []
+
+
+def test_parar_mientras_carga_el_modelo_para_el_reloj_y_dice_por_que_no_hay_texto() -> None:
+    e = panel_conectado()
+    e.aplicar(ev("engine.state", state="arrancando", mode="auto", device="cuda", reason=""))
+    e.aplicar(ev("session.started", session_id="s1", mode="dictado"))
+    assert "Escuchando" in e.html()
+    parada = {**ev("session.stopped", session_id="s1"), "ts": (T0 + timedelta(seconds=3)).isoformat()}
+    assert e.aplicar(parada) == []
+    assert e.grabando and e.terminando
+    assert e.titulo(T0 + timedelta(seconds=20), 0) == "dictado · 0:03 · terminando de cargar el modelo…"
+    assert "Micrófono cerrado" in e.html() and "termine de cargar el modelo" in e.html()
+    assert e.color_punto == COLORES_PUNTO["arrancando"]
+    e.aplicar(ev("engine.state", state="dictando", mode="auto", device="cuda", reason=""))
+    assert e.titulo(T0 + timedelta(seconds=25), 0) == "dictado · 0:03 · transcribiendo…"
+    e.aplicar(ev("segment.final", session_id="s1", index=0, t0=0, t1=2, text="Hola."))
+    assert "Hola." in e.html()
+    e.aplicar(ev("session.finalized", session_id="s1", text="Hola.", duration_s=3, segments=1))
+    assert not e.grabando and not e.terminando
+    e.aplicar(ev("session.started", session_id="s2", mode="dictado"))
+    assert not e.terminando and e.fin is None and "Escuchando" in e.html()
+
+
+def test_session_stopped_de_otra_sesion_se_ignora() -> None:
+    e = panel_conectado()
+    e.aplicar(ev("session.started", session_id="s1", mode="dictado"))
+    e.aplicar(ev("session.stopped", session_id="otra"))
+    assert not e.terminando

@@ -30,8 +30,9 @@ class Cliente(QObject):
 
     # ------------------------------------------------------------ REST
 
-    def pedir(self, operacion: str, metodo: str, ruta: str, cuerpo: dict | None = None) -> None:
-        threading.Thread(target=self._pedir, args=(operacion, metodo, ruta, cuerpo), daemon=True,
+    def pedir(self, operacion: str, metodo: str, ruta: str, cuerpo: dict | None = None,
+              espera_s: float | None = None) -> None:
+        threading.Thread(target=self._pedir, args=(operacion, metodo, ruta, cuerpo, None, espera_s), daemon=True,
                          name=f"rest-{operacion}").start()
 
     def subir(self, operacion: str, ruta: str, datos: bytes, tipo: str) -> None:
@@ -53,9 +54,10 @@ class Cliente(QObject):
             return json.loads(texto) if "json" in r.headers.get("Content-Type", "") else texto
 
     def _pedir(self, operacion: str, metodo: str, ruta: str, cuerpo: dict | None,
-               binario: tuple[bytes, str] | None = None) -> None:
+               binario: tuple[bytes, str] | None = None, espera_s: float | None = None) -> None:
         try:
-            resultado: Any = self.pedir_ya(metodo, ruta, cuerpo, espera_s=30 if binario else 5, binario=binario)
+            espera = espera_s or (30 if binario else 5)
+            resultado: Any = self.pedir_ya(metodo, ruta, cuerpo, espera_s=espera, binario=binario)
         except urllib.error.HTTPError as e:
             detalle = e.read().decode("utf-8", "replace")
             try:

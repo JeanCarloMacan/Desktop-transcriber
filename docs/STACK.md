@@ -1,6 +1,6 @@
 # Stack tecnológico
 
-Versiones fijadas en `uv.lock` (las de la tabla son las probadas en la versión 0.3.0).
+Versiones fijadas en `uv.lock` (las de la tabla son las probadas en la versión 0.4.0).
 
 ## Runtime
 
@@ -21,21 +21,23 @@ Versiones fijadas en `uv.lock` (las de la tabla son las probadas en la versión 
 | [Pydantic](https://docs.pydantic.dev/) | 2.14.1 | contratos y configuración | validación de entradas, eventos con discriminador por `type` | MIT |
 | [websockets](https://websockets.readthedocs.io/) | 17.3 | WebSocket del servidor y cliente síncrono | — | BSD-3 |
 | SQLite (stdlib) | — | sesiones, segmentos, eventos | sin servidor, WAL, migraciones SQL | dominio público |
-| [nvidia-ml-py](https://pypi.org/project/nvidia-ml-py/) | 13.615 | NVML | leer la VRAM y elegir la GPU **sin crear contexto CUDA** | BSD-3 |
+| [nvidia-ml-py](https://pypi.org/project/nvidia-ml-py/) | 13.615 | NVML | leer la VRAM y elegir la GPU **sin crear contexto CUDA**; en tasks-service, mirar si otro programa usa la GPU de LM Studio (VRAM y cómputo) antes de cargar el modelo | BSD-3 |
 | CUDA Toolkit (cuBLAS) | 12.x (probado 12.9) | DLLs de CUDA | ya instalado en el equipo: evita bajar PyTorch (~4 GB) solo por cuBLAS | EULA de NVIDIA |
 | cuDNN 9 | cargador incluido en el wheel de CTranslate2 | — | en el equipo de pruebas no hizo falta instalar nada más | EULA de NVIDIA |
 | [huggingface_hub](https://huggingface.co/docs/huggingface_hub) | 2.2.0 | descarga del modelo | `--descargar-modelo`, a carpetas normales (sin symlinks) | Apache-2.0 |
 | [PySide6-Essentials](https://doc.qt.io/qtforpython-6/) (Qt 6) | 6.12.0 | panel, bandeja y editor | translucidez real, fuentes nítidas en alta densidad, bandeja nativa; `QTextDocument` lee y escribe Markdown con imágenes; arrastre de archivos (`QDrag`) | LGPL-3.0 |
 | Win32 (ctypes) | — | `RegisterHotKey`, `WS_EX_NOACTIVATE`, `keybd_event`, mutex | atajos globales sin permisos especiales; un panel que no roba el foco | — |
 | Recorte de Windows (Herramienta Recortes) | la del sistema | capturas | se abre con el URI `ms-screenclip:` y deja la imagen en el portapapeles; nada que instalar ni mantener | incluida en Windows |
+| [LM Studio](https://lmstudio.ai/) | aplicación aparte (opcional) | servidor del LLM de tareas | servidor local compatible con OpenAI en `127.0.0.1:1234` que impone la salida con JSON Schema; carga el modelo a demanda (JIT) con `ttl` y su API REST v1 permite descargarlo al vaciarse la cola; elige la GPU por su cuenta, así que tasks-service nunca toca CUDA; cliente con `urllib` de la biblioteca estándar, sin SDK | sus propias condiciones de uso; no se redistribuye |
+| gpt-oss-20b ([openai/gpt-oss-20b](https://huggingface.co/openai/gpt-oss-20b)) | — (MXFP4) | extracción de tareas | con `reasoning_effort=high`: 14/14 dictados del banco de F4, mediana ≈ 4,3 s, ≈ 12 GB de VRAM; Qwen3.5-35B-A3B también hizo 14/14, pero con ≈ 12,6 s y 22 GB | Apache-2.0 (OpenAI) |
 
 ## Desarrollo
 
 | Pieza | Versión | Papel |
 |---|---|---|
 | [uv](https://docs.astral.sh/uv/) | 0.12 | entorno, dependencias y bloqueo (`uv.lock`) |
-| hatchling | — | empaquetado (`src/voice_core`, `src/overlay`) |
-| pytest | 9.1 | tests (110 unitarios sin GPU, 4 de punta a punta con `-m gpu`) |
+| hatchling | — | empaquetado (`src/voice_core`, `src/overlay`, `src/tasks_service`) |
+| pytest | 9.1 | tests (146 unitarios sin GPU ni LM Studio; 4 de punta a punta marcados `gpu`, que se deseleccionan por defecto y se corren con `-m gpu`) |
 | httpx | 0.28 | cliente de pruebas de FastAPI |
 | num2words | 0.5 | normalización de cifras para el WER de los spikes |
 
@@ -48,9 +50,14 @@ Versiones fijadas en `uv.lock` (las de la tabla son las probadas en la versión 
 | Integración | WebSocket + REST con `seq` | broker NATS/Redis (sobredimensionado), webhooks (quedan para F5) |
 | Liberar VRAM | worker en proceso aparte + reposo en RAM | descargar el modelo en el mismo proceso (deja ≈ 240 MB de contexto y no evita el arranque lento) |
 | Capturas | recorte de Windows por `ms-screenclip:` | herramienta de recorte propia (más código; la de Windows ya permite anotar antes de copiar) |
+| LLM de tareas | gpt-oss-20b con `reasoning_effort=high` en LM Studio ([banco de F4](F4_TAREAS.md#prueba-de-modelos)) | Qwen3.5-35B-A3B (igual de preciso, pero ≈ 3× más lento y casi el doble de memoria; LM Studio ignora `enable_thinking: false`), gpt-oss-20b con razonamiento por defecto o `medium` (falla fechas relativas) |
+| Revisión de tareas | bandeja de propuestas que apruebas | que el LLM escriba directamente en la lista (sus errores la ensuciarían) |
+| GPU ocupada al extraer | esperar y reintentar solo (NVML cada 60 s) y descargar el modelo al vaciarse la cola | cargar siempre; dejar el modelo cargado con un TTL largo (600 s) |
 
 ## Licencias de terceros
 
 El código del proyecto es [MIT](../LICENSE). PySide6/Qt se usa bajo **LGPL-3.0** como biblioteca enlazada
 dinámicamente desde PyPI (sin modificarla); python-soxr es LGPL-2.1+ en las mismas condiciones. El CUDA Toolkit y
-cuDNN están sujetos a la licencia de NVIDIA y no se redistribuyen en este repositorio.
+cuDNN están sujetos a la licencia de NVIDIA y no se redistribuyen en este repositorio. LM Studio es una aplicación
+aparte con sus propias condiciones y el modelo gpt-oss-20b (**Apache-2.0**) se descarga en ella: ninguno de los dos se
+incluye en el repositorio; tasks-service solo habla con LM Studio por HTTP local.

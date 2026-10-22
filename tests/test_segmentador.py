@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from voice_core.segmentador import SR, ParamsSegmentacion, Segmentador
+from voice_core.segmentador import SR, ParamsSegmentacion, Segmentador, eco_del_glosario
 
 
 def voz(s: float) -> np.ndarray:
@@ -141,3 +141,18 @@ def test_segmentador_recorta_el_silencio_final() -> None:
     s.alimentar(np.concatenate([voz(1.0), silencio(1.5)]))
     duracion, final = t.llamadas[-1]
     assert final and duracion < 1.3
+
+
+GLOSARIO = ("Dictado técnico en español, con puntuación y tildes. Términos frecuentes: endpoint, pull request, "
+            "learning rate, LoRA, F1 y overfitting.")
+
+
+def test_el_eco_del_glosario_se_descarta_pero_no_sus_terminos() -> None:
+    assert eco_del_glosario("Términos frecuentes.", GLOSARIO)
+    assert eco_del_glosario(" términos frecuentes", GLOSARIO)
+    assert eco_del_glosario("Dictado técnico en español.", GLOSARIO)
+    assert not eco_del_glosario("Learning rate.", GLOSARIO)  # decir un término suelto es válido
+    assert not eco_del_glosario("Pull request.", GLOSARIO)
+    assert not eco_del_glosario("Overfitting.", GLOSARIO)  # una palabra
+    assert not eco_del_glosario("Revisa los términos frecuentes del contrato.", GLOSARIO)  # no está tal cual
+    assert not eco_del_glosario("Términos frecuentes.", None)

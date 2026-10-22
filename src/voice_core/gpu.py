@@ -3,9 +3,17 @@ from __future__ import annotations
 
 import logging
 import os
+from dataclasses import dataclass
 from pathlib import Path
 
 log = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class LecturaGpu:
+    nombre: str
+    usada_mib: int
+    uso_pct: int  # % del tiempo con algún kernel en marcha (último periodo de muestreo de NVML)
 
 
 def listar_gpus() -> list[tuple[str, str]]:
@@ -66,6 +74,25 @@ class Nvml:
             try:
                 info = pynvml.nvmlDeviceGetMemoryInfo(pynvml.nvmlDeviceGetHandleByUUID(uuid))
                 return int(info.used // 2**20), int(info.free // 2**20)
+            finally:
+                pynvml.nvmlShutdown()
+        except pynvml.NVMLError as e:
+            log.warning("NVML no pudo leer %s: %s", uuid, e)
+            return None
+
+    def lectura(self, uuid: str) -> LecturaGpu | None:
+        """Nombre, VRAM usada y uso de cómputo de la GPU con ese UUID; None si NVML no puede leerla."""
+        try:
+            import pynvml
+        except ImportError:
+            return None
+        try:
+            pynvml.nvmlInit()
+            try:
+                h = pynvml.nvmlDeviceGetHandleByUUID(uuid)
+                return LecturaGpu(str(pynvml.nvmlDeviceGetName(h)),
+                                  int(pynvml.nvmlDeviceGetMemoryInfo(h).used // 2**20),
+                                  int(pynvml.nvmlDeviceGetUtilizationRates(h).gpu))
             finally:
                 pynvml.nvmlShutdown()
         except pynvml.NVMLError as e:
